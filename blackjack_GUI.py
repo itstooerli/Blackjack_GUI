@@ -1,9 +1,11 @@
 import tkinter as tk
+from PIL import Image, ImageTk
 import random
 import math
 import copy
 import os
 from enum import Enum
+# import blackjack_settings
 
 class SeatType(Enum):
   PLAYER = 0
@@ -20,7 +22,7 @@ class HandStatus(Enum):
   WAITING = 6
 
 class Card:
-  def __init__(self, suit, card, value):
+  def __init__(self, suit=None, card=None, value=None, image=None):
     # Stores the suit of the card, e.g. Clubs
     self.suit = suit
 
@@ -29,6 +31,41 @@ class Card:
 
     # Stores the value of the card for this game, e.g. K = 10, 3 = 3
     self.value = value
+
+    # Stores the image of the card for the GUI
+    self.image = image
+
+  # def copy(self):
+  #   copyobj = Card()
+  #   for name, attr in self.__dict__.items():
+  #       if hasattr(attr, 'copy') and callable(getattr(attr, 'copy')):
+  #         copyobj.__dict__[name] = attr.copy()
+  #       else:
+  #         print(name, attr)
+  #         copyobj.__dict__[name] = copy.deepcopy(attr)
+  #   return copyobj
+
+  # def copy(self):
+  #   clone = copy.copy(self) # to copy __dict__ only
+  #   for key, value in clone.__dict__.items():
+  #     print(key,value)
+  #     if isinstance(value, Card):
+  #         clone.__dict__[key] = value.copy() # recursively
+  #     elif isinstance(value, Image):
+  #         clone.__dict__[key] = value.copy()
+  #     else:
+  #         clone.__dict__[key] = copy.deepcopy(value)
+  #   return clone
+
+  def copy(self):
+    copyobj = Card()
+    for key, value in self.__dict__.items():
+      if key == "image":
+        # copyobj.__dict__[key] = value.copy()
+        copyobj.__dict__[key] = value
+      else:
+        copyobj.__dict__[key] = copy.deepcopy(value)
+    return copyobj
 
 class Hand:
   def __init__(self, cards, score, num_aces, bet):
@@ -48,7 +85,7 @@ class Hand:
     self.status = HandStatus.ACTIVE
 
 class Seat:
-  def __init__(self, type):
+  def __init__(self, type, money=0, base_bet=100, frame=None):   
     # Stores the type of seat this is
     self.type = type
 
@@ -56,16 +93,19 @@ class Seat:
     self.hand = []
     
     # If the type is a player/AI, how much money does the player have
-    self.money = 0
+    self.money = money
 
     # If the type is a player/AI, what was initial bet
-    self.base_bet = 100
+    self.base_bet = base_bet
+
+    # Stores the frame for this Seat
+    self.frame = frame
 
 def define_settings(num_decks, num_players, player_seat_no, starting_money):
   ## Start Settings GUI
   settings_window = tk.Tk()
   settings_window.title("Blackjack")
-  # window.geometry("500x300")
+  # settings_window.geometry("500x300")
   label_settings_title = tk.Label(text="Initialize Settings...")
   label_settings_title.grid(row=0,column=0,columnspan=3)
 
@@ -164,10 +204,6 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
 
   settings_window.mainloop()
 
-# Clear the terminal
-def clear():
-    os.system("clear")
-
 def create_deck(num_decks, suit_values, card_values):
   # Define basic components of a deck
   deck = []
@@ -175,14 +211,36 @@ def create_deck(num_decks, suit_values, card_values):
   cards = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 
   # Create deck with cards based on provided values and total number of decks
-  for i in range(num_decks):
-    for suit in suits:
-      for card in cards:
-        deck.append(Card(suit_values[suit], card, card_values[card]))
+  # for i in range(num_decks):
+  #   for suit in suits:
+  #     for card in cards:
+  #       card_image = resize_card(f'cards/{card}_of_{suit}.png')
+  #       deck.append(Card(suit_values[suit], card, card_values[card], card_image))
 
+  for suit in suits:
+    for card in cards:
+      card_image = resize_card(f'cards/{card}_of_{suit}.png')
+      for i in range(num_decks):
+        deck.append(Card(suit_values[suit], card, card_values[card], card_image))
   return deck
 
-def setup_table(num_players, player_seat_no, player_money, ai_money):
+def resize_card(card):
+  card_img = Image.open(card)
+  card_img_resized = card_img.resize((50, 73))
+
+  global card_img_global
+  card_img_global = ImageTk.PhotoImage(card_img_resized)
+  return card_img_global
+
+def setup_table(main_frame, num_players, player_seat_no, player_money, ai_money):
+  ## Dealer Frame
+  dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, bg="blue")
+  dealer_frame.grid(row=0, column=0, padx=20, ipadx=20)
+
+  ## Table Frame
+  table_frame = tk.LabelFrame(main_frame, text="Table", bd=0, bg="yellow")
+  table_frame.grid(row=1, column=0, padx=20)
+  
   # Initialize the table as list of Seats
   table = []
   
@@ -190,58 +248,27 @@ def setup_table(num_players, player_seat_no, player_money, ai_money):
   for player_no in range(num_players):
     # Initialize the player
     if player_no == player_seat_no - 1:
-      table.append(Seat(SeatType.PLAYER))
-      table[player_no].money = player_money
+      table.append(Seat(SeatType.PLAYER, player_money))
       table[player_no].base_bet = min(100, -(-player_money // 10)) ## 100 or Round-up Integer Divsion
     # Create AI seats
     else:
-      table.append(Seat(SeatType.AI))
-      table[player_no].money = ai_money
+      table.append(Seat(SeatType.AI, ai_money))
+
+    ## Create a frame for this player
+    frame = tk.LabelFrame(table_frame, text=f'Player {player_no}', bd=0, bg = 'magenta')
+    frame.grid(row=0, column=player_no, padx=20)
+    table[player_no].frame = frame
 
   # The last seat is always the dealer
   table.append(Seat(SeatType.DEALER))
+  table[-1].frame = dealer_frame
 
   return table
 
-def define_bets(table, ai_money, ai_bet):
-  # Determine bets for every seat
-  for seat in table:  
-    # Player specifies bet
-    if seat.type == SeatType.PLAYER:
-      while (True):
-        print("Current cash pool: " + str(seat.money))
-        player_bet = input("Press enter to keep old bet. Enter new bet: ")
-
-        # If player wants to keep old bet and bet was not 0, then skip
-        if not player_bet and seat.base_bet > 0:
-          break
-        
-        try:
-          player_bet = float(player_bet)
-          if player_bet < 0 or player_bet > seat.money:
-            print("Not enough money. Please try again.")
-            continue
-        except ValueError:
-          print("Not a valid input. Please try again.")
-          continue
+def display_card(seat, hand_number, new_card):
+  label = tk.Label(seat.frame, image=new_card.image)
+  label.grid(row=hand_number, column=len(seat.hand[hand_number].cards))
   
-        if player_bet % 0.5 != 0:
-          player_bet = round(player_bet * 2) / 2
-
-        seat.base_bet = player_bet
-        break
-    
-    # Define AI bet
-    elif seat.type == 1:
-      # If the ai doesn't have enough money to bet/double down/split, reload bank
-      if ai_bet * 4 > seat.money:
-        seat.money = ai_money
-      seat.base_bet = ai_bet
-    
-    # Skip dealer
-    else:
-      continue
-
 def deal_cards(deck, table):
   # Initialize each seat's hand
   for seat in table:
@@ -254,6 +281,7 @@ def deal_cards(deck, table):
   while num_cards < 2:
     for seat in table:
       new_card = random.choice(deck)
+      display_card(seat, 0, new_card)
       seat.hand[0].cards.append(new_card)
       seat.hand[0].score += new_card.value
 
@@ -270,9 +298,21 @@ def deal_cards(deck, table):
 
     num_cards = num_cards + 1
 
-def deal_new_card(deck, hand):
+  ## Hide the dealer's second card
+  default_image = resize_card(f'cards/default.png')
+  label = tk.Label(table[-1].frame, image=default_image)
+  label.grid(row=0,column=1)
+
+def shuffle_deck(new_deck):
+  # curr_deck = copy.deepcopy(new_deck)
+  curr_deck = [card.copy() for card in new_deck]
+  cutoff = random.randrange(math.floor(len(new_deck) * 0.25), math.floor(len(new_deck) * 0.5))
+  return curr_deck, cutoff
+
+def deal_new_card(deck, seat, hand):
   # Deal a new card from the provided deck to the provided cards and update the provided score
   new_card = random.choice(deck)
+  display_card(seat, 0, new_card) ## TODO: Fix hand_number to accommodate split
   hand.cards.append(new_card)
   hand.score += new_card.value
   deck.remove(new_card)
@@ -289,210 +329,48 @@ def deal_new_card(deck, hand):
         card.value = 1
         break
 
-def display_table(table, hidden):
-  clear()
+def hit_command():
+  global seat, curr_deck
+  print(seat.type)
+
+  ## Debug
+  global player_standing
+  print(player_standing.get())
+
+  deal_new_card(curr_deck, seat, seat.hand[0])
   
-  # Display dealer's cards first, if hidden then only first card is shown
-  dealer_hand = table[-1].hand[0]
+
+if __name__ == "__main__":
+  ## Set Default Values
+  num_decks = 6
+  num_players = 6
+  player_seat_no = 1
+  starting_money = 1000
+
+  ## TODO: Figure out how to move this function to a different script
+  # define_settings(num_decks, num_players, player_seat_no, starting_money)
+
+  ## For Debugging
+  print(num_decks)
+  print(num_players)
+  print(player_seat_no)
+  print(starting_money)
+
+  ## Initialize window
+  root = tk.Tk()
+  root.title("Blackjack")
+  root.geometry("900x400")
+  root.configure(background="green")
+
+  main_frame = tk.Frame(root, bg="orange")
+  main_frame.pack(pady=10)
+
+  # Define AI variables
+  ai_money = 1000000
+  ai_bet = 100
   
-  print("\nDealer's cards:", end="\n\t")
-  if hidden:
-    print(str(dealer_hand.cards[0].card) + str(dealer_hand.cards[0].suit) + " XX", end=" ")
-    print("Value: " + str(dealer_hand.cards[0].value))
-  else:
-    for card in dealer_hand.cards:
-      print(str(card.card) + str(card.suit), end=" ")
-    print("Value: " + str(dealer_hand.score))
-
-  # Display every other seat's cards
-  for seat in table:
-    if seat.type == SeatType.PLAYER:
-      print("\nPlayer's cards " + "(money: " + str(seat.money) + "):", end="")
-    elif seat.type == SeatType.AI:
-      print("\nAI's cards " + "(money: " + str(seat.money) + "):", end="")
-    else:
-      continue
-
-    for hand in seat.hand:
-      print("\n\t", end="")
-      for card in hand.cards:
-        print(str(card.card) + str(card.suit), end=" ")
-      print("Value: " + str(hand.score) + "\t(bet: " + str(hand.bet) + ")" + "\t" + str(hand.status.name))
-    
-  print()
-
-def shuffle_deck(new_deck):
-  curr_deck = copy.deepcopy(new_deck)
-  cutoff = random.randrange(math.floor(len(new_deck) * 0.25), math.floor(len(new_deck) * 0.5))
-  return curr_deck, cutoff
-
-def double_down(curr_deck, hand):
-  hand.bet *= 2
-  deal_new_card(curr_deck, hand)
-  hand.status = HandStatus.WAITING
-
-def split_hand(curr_deck, seat, hand, split_card):
-  # Remove the split card from the current hand
-  hand.score -= split_card.value
-  hand.cards.pop()
-
-  # Create new hand
-  if split_card.card == "A":
-    split_card.value = 11
-    hand.num_aces -= 1
-    seat.hand.append(Hand([split_card], split_card.value, 1, seat.base_bet))
-  else:
-    seat.hand.append(Hand([split_card], split_card.value, 0, seat.base_bet))
-  
-  # Deal both hands a new card
-  deal_new_card(curr_deck, hand)
-  deal_new_card(curr_deck, seat.hand[-1])
-  
-# AI hits if score is less than 17; otherwise stand
-def play_AI_hand_naive_strategy(curr_deck, table, seat, hand):
-  while hand.score < 17:  
-    deal_new_card(curr_deck, hand)
-  
-  if hand.score > 21:
-    hand.status = HandStatus.LOSER
-  else:
-    hand.status = HandStatus.WAITING
-
-
-def play_AI_hand_basic_strategy(curr_deck, table, seat, hand):
-  """
-  # Defining Basic Strategy
-  # - Always split As and 8s
-  # - Never split 5s and 10s
-  # - Split 2s and 3s against Dealer 2-7
-  # - Split 4s against Dealer 5-6
-  # - Split 6s against Dealer 2-6
-  # - Split 7s against Dealer 2-7
-  # - Split 9s against Dealer 2-6 or 8-9
-  # - Double hard 9 against Dealer 3-6
-  # - Double hard 10 against Dealer 2-9
-  # - Double hard 11 against Dealer 2-K 
-  # - Double soft 13 or 14 against Dealer 5-6
-  # - Double soft 15 or 16 against Dealer 4-6
-  # - Double soft 17 or 18 against Dealer 3-6
-  # - Always hit hard 11 or less
-  # - Stand on hard 12 against dealer 4-6, otherwise hit
-  # - Stand on hard 13-16 against dealer 2-6, otherwise hit
-  # - Always stand on hard 17 or more
-  # - Always hit soft 17 or less
-  # - Stand on soft 18 except hit against Dealer 9-A 
-  # - Always stand on soft 19 or more
-  """
-  
-  dealer_shown_card = table[-1].hand[0].cards[0]
-
-  while hand.score < 21:
-    if len(hand.cards) == 2:
-      # Assess Split
-      if hand.cards[0].card == hand.cards[1].card:
-        # Only need to look at card and not value because we never split 10s anyways
-        split_card = hand.cards[1]
-  
-        if split_card.card == "A":
-          split_hand(curr_deck, seat, hand, split_card)
-          seat.hand[-1].status = HandStatus.WAITING
-          hand.status = HandStatus.WAITING
-          break
-        elif split_card.card in ("2", "3"):
-          if dealer_shown_card.value in (2,3,4,5,6,7):
-            split_hand(curr_deck, seat, hand, split_card)
-            continue
-        elif split_card.card == "4":
-          if dealer_shown_card.value in (5,6):
-            split_hand(curr_deck, seat, hand, split_card)
-            continue
-        elif split_card.card == "5":
-          pass
-        elif split_card.card == "6":
-          if dealer_shown_card.value in (2,3,4,5,6):
-            split_hand(curr_deck, seat, hand, split_card)
-            continue
-        elif split_card.card == "7":
-          if dealer_shown_card.value in (2,3,4,5,6,7):
-            split_hand(curr_deck, seat, hand, split_card)
-            continue
-        elif split_card.card == "8":
-          split_hand(curr_deck, seat, hand, split_card)
-          continue
-        elif split_card.card == "9":
-          if dealer_shown_card.value in (2,3,4,5,6,8,9):
-            split_hand(curr_deck, seat, hand, split_card)
-            continue
-        else:  # 10, J, Q, K
-          pass
-
-      # Assess Double
-      if hand.num_aces == 0:
-        if hand.score == 9:
-          if dealer_shown_card.value in (3,4,5,6):  
-            double_down(curr_deck, hand)
-            break
-        elif hand.score == 10:
-          if dealer_shown_card.value in (2,3,4,5,6,7,8,9):
-            double_down(curr_deck, hand)
-            break
-        elif hand.score == 11:
-          if dealer_shown_card.value in (2,3,4,5,6,7,8,9,10):
-            double_down(curr_deck, hand)
-            break
-      else:
-        if hand.score in (13,14):
-          if dealer_shown_card.value in (5,6):
-            double_down(curr_deck, hand)
-            break
-        elif hand.score in (15,16):
-          if dealer_shown_card.value in (4,5,6):
-            double_down(curr_deck, hand)
-            break
-        elif hand.score in (17,18):
-          if dealer_shown_card.value in (3,4,5,6):
-            double_down(curr_deck, hand)
-            break
-  
-    if hand.num_aces == 0:
-      if hand.score <= 11:
-        deal_new_card(curr_deck, hand)
-      elif hand.score == 12:
-        if dealer_shown_card.value in (4,5,6):
-          hand.status = HandStatus.WAITING
-          break
-        else:
-          deal_new_card(curr_deck, hand)
-      elif hand.score in (13,14,15,16):
-        if dealer_shown_card.value in (2,3,4,5,6):
-          hand.status = HandStatus.WAITING
-          break
-        else:
-          deal_new_card(curr_deck, hand)
-      else:
-        hand.status = HandStatus.WAITING
-        break
-    else:
-      if hand.score <= 17:
-        deal_new_card(curr_deck, hand)
-      elif hand.score == 18:
-        if dealer_shown_card.value in (9,10,11):
-          deal_new_card(curr_deck, hand)
-        else:
-          hand.status = HandStatus.WAITING
-          break
-      else:
-        hand.status = HandStatus.WAITING
-        break
-  if hand.score > 21:
-    hand.status = HandStatus.LOSER
-
-def ask_continue_game():
-  player_choice = input("Enter Q to quit or any other key to continue: ")
-  print()
-  return player_choice.upper() != "Q"
-  
-def blackjack_game(num_decks, num_players, player_seat_no, player_money):
+  ## Setup table
+  table = setup_table(main_frame, num_players, player_seat_no, starting_money, ai_money)
 
   # Define suit values for blackjack
   suit_values = {"Spades":"\u2664", "Hearts":"\u2661", "Clubs":"\u2667", "Diamonds":"\u2662"}
@@ -502,203 +380,49 @@ def blackjack_game(num_decks, num_players, player_seat_no, player_money):
 
   # Create a new deck for blackjack
   new_deck = create_deck(num_decks, suit_values, card_values)
-  curr_deck, cutoff = shuffle_deck(new_deck)  
+  curr_deck, cutoff = shuffle_deck(new_deck)
 
-  # Define AI variables
-  ai_money = 1000000
-  ai_bet = 100
+  ## TODO: Need to shuffle deck here to avoid modifying original deck
+  ## TODO: Need to define bets
   
-  # Setup table
-  table = setup_table(num_players, player_seat_no, player_money, ai_money)
+  deal_cards(curr_deck, table)
+
+  ## TODO: Need to check if seats have blackjack 
   
-  # Play Game
-  while(True):
-    # print("Number of cards left: " + str(len(curr_deck)))
+  # default_image = resize_card(f'cards/default.png')
+  # for labels in table[-1].frame.winfo_children():
+  #   labels.destroy()
     
-    # Reshuffle deck if we're at the cutoff point
-    if len(curr_deck) < cutoff:
-      curr_deck, cutoff = shuffle_deck(new_deck)  
+  # label = tk.Label(table[-1].frame, image=default_image)
+  # label.grid(row=0,column=0)
+  # label = tk.Label(table[-1].frame, image=default_image)
+  # label.grid(row=0,column=1)
 
-    # Define bets for each seat for this round
-    define_bets(table, ai_money, ai_bet)
-
-    # Deal the new hand
-    deal_cards(curr_deck, table)
-    display_table(table, True)
-
-    # Check if seats have blackjack
-    dealer_hand = table[-1].hand[0]
-    if dealer_hand.score == 21:
-      for seat in table:
-        if seat.type == SeatType.DEALER:
-          continue
-        elif seat.hand[0].score == 21:
-          seat.hand[0].status = HandStatus.TIE
-        else:
-          seat.hand[0].status = HandStatus.LOSER
-      print("Dealer has blackjack!")
-    else:
-      for seat in table:
-        if seat.hand[0].score == 21:
-          seat.hand[0].status = HandStatus.BLACKJACK
-
-    display_table(table, True)
-
-    # Play the Seat's Hand
-    for seat in table:
-      if seat.type == SeatType.AI:
-        completed_hands = 0
-        while completed_hands != len(seat.hand):
-          current_hand = seat.hand[completed_hands]
-          
-          if current_hand.status != HandStatus.ACTIVE:
-            completed_hands += 1
-            continue
-          
-          #play_AI_hand_naive_strategy(curr_deck, table, seat, current_hand)
-          play_AI_hand_basic_strategy(curr_deck, table, seat, current_hand)
-          
-          completed_hands += 1
-          display_table(table, True)
-          
-      elif seat.type == SeatType.PLAYER:
-        completed_hands = 0
-        while completed_hands != len(seat.hand):
-          current_hand = seat.hand[completed_hands]
-          
-          if current_hand.status != HandStatus.ACTIVE:
-            completed_hands += 1
-            continue
-            
-          while current_hand.score < 22:
-            display_table(table, True)
-            
-            # Player Input
-            if len(current_hand.cards) == 2:
-              if current_hand.cards[0].card == current_hand.cards[1].card or current_hand.cards[0].value == current_hand.cards[1].value:
-                player_choice = input("Enter H to hit, D to double down, L to split, S to stand: ")
-                if (len(player_choice) != 1 or player_choice.upper() not in ("H", "D", "L", "S")):
-                  print("Invalid Choice.")
-                  continue
-              else:
-                player_choice = input("Enter H to hit, D to double down, S to stand: ")
-                if (len(player_choice) != 1 or player_choice.upper() not in ("H", "D", "S")):
-                  print("Invalid Choice.")
-                  continue
-            else:
-              player_choice = input("Enter H to hit, S to stand: ")
-              if (len(player_choice) != 1 or player_choice.upper() not in ("H", "S")):
-                print("Invalid Choice.")
-                continue
-
-            if player_choice.upper() == "H":
-              # Player Hits
-              deal_new_card(curr_deck, current_hand)
-              display_table(table, True)
-            elif player_choice.upper() == "D":
-              # Player Doubles Down
-              double_down(curr_deck, current_hand)
-              break
-            elif player_choice.upper() == "L":
-              split_card = current_hand.cards[1]
-              
-              # Create the new hand
-              if split_card.card == "A":
-                split_hand(curr_deck, seat, current_hand, split_card)
-                seat.hand[-1].status = HandStatus.WAITING
-                current_hand.status = HandStatus.WAITING
-                break
-              else:
-                split_hand(curr_deck, seat, current_hand, split_card)
-                continue
-              
-            elif player_choice.upper() == "S":
-              # Player Stands
-              current_hand.status = HandStatus.WAITING
-              break
-
-          if current_hand.score > 21:
-            current_hand.status = HandStatus.LOSER
-            
-          display_table(table, True)
-          
-          completed_hands += 1
-              
-      elif seat.type == SeatType.DEALER:
-        any_active_hands = False
-        
-        for seat in table:
-          if not any_active_hands:
-            for hand in seat.hand:
-              if hand.status == HandStatus.WAITING:
-                any_active_hands = True
-                break
-          else:
-            break
-
-        if any_active_hands:
-          while dealer_hand.score < 17:
-            deal_new_card(curr_deck, dealer_hand)
-            display_table(table, False)
-    
-    # Determine Winners/Losers
-    if dealer_hand.score > 21:
-      for seat in table:
-        for hand in seat.hand:
-          if hand.status == HandStatus.WAITING:
-            hand.status = HandStatus.WINNER
-    else:
-      for seat in table:
-        for hand in seat.hand:
-          if hand.status == HandStatus.WAITING:
-            if hand.score == dealer_hand.score:
-              hand.status = HandStatus.TIE
-            elif hand.score > dealer_hand.score:
-              hand.status = HandStatus.WINNER
-            else:
-              hand.status = HandStatus.LOSER
-
-    display_table(table, False)
-    
-    # Determine Payouts
-    out_of_money = False
-    for seat in table:
-      for hand in seat.hand:
-        if hand.status == HandStatus.BLACKJACK:
-          seat.money += hand.bet * 1.5
-        elif hand.status == HandStatus.WINNER:
-          seat.money += hand.bet
-        elif hand.status == HandStatus.LOSER:
-          seat.money -= hand.bet
-
-          if seat.type == SeatType.PLAYER and seat.money <= 0:
-            out_of_money = True
-            
-    display_table(table, False)
-
-    if out_of_money:
-      print("Player is out of money!")
-      break
-    
-    if ask_continue_game():
-      continue
-    else:
-      break
-
-if __name__ == "__main__":
-  ## Set Default Values
-  num_decks = 6
-  num_players = 6
-  player_seat_no = 1
-  starting_money = 1000
-
-  define_settings(num_decks, num_players, player_seat_no, starting_money)
+  ## Playing the Seat's Hand
+  command_frame = tk.Frame(root, bg="gray")
+  command_frame.pack(side=tk.BOTTOM, pady=20)
   
-  print(num_decks)
-  print(num_players)
-  print(player_seat_no)
-  print(starting_money)
-  # main_window = tk.Tk()
-  # main_window.title("Blackjack")
-  # main_window.mainloop()
-  blackjack_game(num_decks, num_players, player_seat_no, starting_money)
+  hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14),command=hit_command)
+  hit_button.grid(row=0, column=0,padx=10)
+
+  double_down_button = tk.Button(command_frame, text="Double Down", font=("Helvetica", 14))
+  double_down_button.grid(row=0, column=1,padx=10)
+
+  split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14))
+  split_button.grid(row=0, column=2,padx=10)
+
+  # player_standing = tk.StringVar()
+  player_standing = tk.IntVar()
+  stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), command=lambda: player_standing.set(player_standing.get() + 1))
+  stand_button.grid(row=0, column=3,padx=10)
+  
+  for seat in table:
+    if seat.type == SeatType.AI:
+      pass
+    elif seat.type == SeatType.PLAYER:
+      stand_button.wait_variable(player_standing)
+    elif seat.type == SeatType.DEALER:
+      pass
+  
+  root.mainloop()
+  # blackjack_game(num_decks, num_players, player_seat_no, starting_money)
