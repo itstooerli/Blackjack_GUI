@@ -299,7 +299,7 @@ def deal_cards(deck, table):
     num_cards = num_cards + 1
 
   ## Hide the dealer's second card
-  default_image = resize_card(f'cards/default.png')
+  default_image = resize_card(f'cards/default.png') ## TODO: Optimize to avoid always resizing the same image
   label = tk.Label(table[-1].frame, image=default_image)
   label.grid(row=0,column=1)
 
@@ -338,7 +338,52 @@ def hit_command():
   print(player_standing.get())
 
   deal_new_card(curr_deck, seat, seat.hand[0])
+
+  if seat.hand[0].score > 21:
+    print('bust')
+    # global player_standing
+    player_standing.set(player_standing.get() + 1)
+
+def play_game(table, curr_deck, new_deck, cutoff):
+  if len(curr_deck) < cutoff:
+    curr_deck, cutoff = shuffle_deck(new_deck)
   
+  for seat in table:
+    if seat.type == SeatType.AI:
+      ## TODO: Implement more difficult AI logic
+      while seat.hand[0].score < 17:
+        deal_new_card(curr_deck, seat, seat.hand[0])
+    elif seat.type == SeatType.PLAYER:
+      stand_button.wait_variable(player_standing)
+      print(seat.hand[0].score)
+
+      hit_button.config(state="disabled")
+      
+    elif seat.type == SeatType.DEALER:
+      ## Reveal card
+      label = tk.Label(table[-1].frame, image=table[-1].hand[0].cards[-1].image)
+      label.grid(row=0,column=1)
+      ## Play out rest of card
+
+      ## TODO: Do not play out if any active hands (see original code)
+
+      while seat.hand[0].score < 17:
+        deal_new_card(curr_deck, seat, seat.hand[0])
+
+      print(seat.hand[0].score)
+  
+  ## Calculate payouts
+
+def reset_table():
+  global curr_deck, table
+
+  for seat in table:
+    for label in seat.frame.winfo_children():
+      label.destroy()
+  
+  deal_cards(curr_deck, table)
+  print("number of labels:", len(table[0].frame.winfo_children()))
+  print("curr_deck length:", len(curr_deck))
 
 if __name__ == "__main__":
   ## Set Default Values
@@ -399,8 +444,14 @@ if __name__ == "__main__":
   # label.grid(row=0,column=1)
 
   ## Playing the Seat's Hand
+  bet_frame = tk.Frame(root, bg="purple")
+  bet_frame.pack(side=tk.BOTTOM, pady=10)
+
+  play_button = tk.Button(bet_frame, text="Play (Submit Bet)", font=("Helvetica", 14), command=reset_table)
+  play_button.grid(row=0,column=0)
+  
   command_frame = tk.Frame(root, bg="gray")
-  command_frame.pack(side=tk.BOTTOM, pady=20)
+  command_frame.pack(side=tk.BOTTOM)
   
   hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14),command=hit_command)
   hit_button.grid(row=0, column=0,padx=10)
@@ -408,21 +459,15 @@ if __name__ == "__main__":
   double_down_button = tk.Button(command_frame, text="Double Down", font=("Helvetica", 14))
   double_down_button.grid(row=0, column=1,padx=10)
 
-  split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14))
+  split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14), state="disabled")
   split_button.grid(row=0, column=2,padx=10)
 
   # player_standing = tk.StringVar()
   player_standing = tk.IntVar()
   stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), command=lambda: player_standing.set(player_standing.get() + 1))
   stand_button.grid(row=0, column=3,padx=10)
-  
-  for seat in table:
-    if seat.type == SeatType.AI:
-      pass
-    elif seat.type == SeatType.PLAYER:
-      stand_button.wait_variable(player_standing)
-    elif seat.type == SeatType.DEALER:
-      pass
+
+  play_game(table, curr_deck, new_deck, cutoff)
   
   root.mainloop()
   # blackjack_game(num_decks, num_players, player_seat_no, starting_money)
