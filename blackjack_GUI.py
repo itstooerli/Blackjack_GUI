@@ -3,7 +3,6 @@ from PIL import Image, ImageTk
 import random
 import math
 import copy
-import os
 from enum import Enum
 # import blackjack_settings
 
@@ -344,9 +343,12 @@ def hit_command():
     # global player_standing
     player_standing.set(player_standing.get() + 1)
 
-def play_game(table, curr_deck, new_deck, cutoff):
+def play_game(table):
+  global curr_deck, cutoff
+  print(len(curr_deck), cutoff)
   if len(curr_deck) < cutoff:
     curr_deck, cutoff = shuffle_deck(new_deck)
+    print('shuffled', len(curr_deck))
   
   for seat in table:
     if seat.type == SeatType.AI:
@@ -354,6 +356,11 @@ def play_game(table, curr_deck, new_deck, cutoff):
       while seat.hand[0].score < 17:
         deal_new_card(curr_deck, seat, seat.hand[0])
     elif seat.type == SeatType.PLAYER:
+      if len(seat.hand[0].cards) == 2:
+        if seat.hand[0].cards[0].card == seat.hand[0].cards[1].card or seat.hand[0].cards[0].value == seat.hand[0].cards[1].value:
+          split_button.config(state="active")
+          
+      
       stand_button.wait_variable(player_standing)
       print(seat.hand[0].score)
 
@@ -384,6 +391,7 @@ def reset_table():
   deal_cards(curr_deck, table)
   print("number of labels:", len(table[0].frame.winfo_children()))
   print("curr_deck length:", len(curr_deck))
+  play_game(table)
 
 if __name__ == "__main__":
   ## Set Default Values
@@ -401,7 +409,7 @@ if __name__ == "__main__":
   print(player_seat_no)
   print(starting_money)
 
-  ## Initialize window
+  ## Initialize main window
   root = tk.Tk()
   root.title("Blackjack")
   root.geometry("900x400")
@@ -467,7 +475,7 @@ if __name__ == "__main__":
   stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), command=lambda: player_standing.set(player_standing.get() + 1))
   stand_button.grid(row=0, column=3,padx=10)
 
-  play_game(table, curr_deck, new_deck, cutoff)
+  play_game(table)
   
   root.mainloop()
   # blackjack_game(num_decks, num_players, player_seat_no, starting_money)
