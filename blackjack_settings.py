@@ -1,6 +1,6 @@
 import tkinter as tk
 
-def define_settings(num_decks, num_players, player_seat_no, starting_money):
+def define_settings(num_decks, num_players, user_seat_no, starting_money):
   ## Start Settings GUI
   settings_window = tk.Tk()
   settings_window.title("Blackjack")
@@ -18,7 +18,7 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
   num_players_var.set(num_players)
   
   seat_no_var = tk.StringVar()
-  seat_no_var.set(player_seat_no)
+  seat_no_var.set(user_seat_no)
   
   starting_money_var = tk.StringVar()
   starting_money_var.set(starting_money)
@@ -45,16 +45,16 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
     except:
       num_players_var.set(num_players)
   
-  def set_player_seat_no():
-    global player_seat_no
+  def set_user_seat_no():
+    global user_seat_no
     try:
       input_seat_no = int(float(seat_no_var.get()))
       if 0 < input_seat_no < num_players + 1:
-        player_seat_no = input_seat_no
+        user_seat_no = input_seat_no
   
-      seat_no_var.set(player_seat_no)
+      seat_no_var.set(user_seat_no)
     except:
-      seat_no_var.set(player_seat_no)
+      seat_no_var.set(user_seat_no)
   
   def set_starting_money():
     global starting_money
@@ -86,7 +86,7 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
   
   label_seat_no = tk.Label(text="Player's seat number [1, number of players]: ")
   entry_seat_no = tk.Entry(width=entry_width, textvariable=seat_no_var)
-  button_seat_no = tk.Button(text="Submit",command=set_player_seat_no)
+  button_seat_no = tk.Button(text="Submit",command=set_user_seat_no)
   label_seat_no.grid(row=3,column=0)
   entry_seat_no.grid(row=3,column=1)
   button_seat_no.grid(row=3,column=2)
