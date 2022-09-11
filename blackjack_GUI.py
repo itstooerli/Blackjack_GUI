@@ -1,6 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from functools import partial
+# from functools import partial
 import random
 import math
 import copy
@@ -11,9 +11,11 @@ class BlackjackGameModel:
   def __init__(self, main_frame, num_decks, num_players, user_seat_no, starting_money):
     self.main_frame = main_frame
     self.base_deck = self.create_deck(num_decks)
+    self.user_seat_no = user_seat_no
     self.table = self.setup_table(self.main_frame, num_players, user_seat_no, starting_money)
     self.curr_deck = []
     self.reshuffle_cutoff = 1
+    self.player_standing = tk.BooleanVar()
 
   class Card:
     def __init__(self, suit=None, card=None, value=None, image=None):
@@ -102,12 +104,13 @@ class BlackjackGameModel:
     return table
 
   def reset_table(self):
+    play_button.config(state="disabled")
     for seat in self.table:
       for label in seat.frame.winfo_children():
         label.destroy()
     
-    print("number of labels:", len(self.table[0].frame.winfo_children()))
-    print("curr_deck length:", len(self.curr_deck))
+    # print("number of labels:", len(self.table[0].frame.winfo_children()))
+    # print("curr_deck length:", len(self.curr_deck))
     self.play_game()
 
   def shuffle_deck(self):
@@ -152,8 +155,31 @@ class BlackjackGameModel:
     default_image = self.resize_card(f'cards/default.png') ## TODO: Optimize to avoid always resizing the same image
     label = tk.Label(self.table[-1].frame, image=default_image)
     label.grid(row=0,column=1)
+
+  def deal_new_card(self, seat, hand):
+    # Deal a new card from the provided deck to the provided cards and update the provided score
+    new_card = random.choice(self.curr_deck)
+    self.display_card(seat, 0, new_card) ## TODO: Fix hand_number to accommodate split
+    hand.cards.append(new_card)
+    hand.score += new_card.value
+    self.curr_deck.remove(new_card)
+  
+    if new_card.card == "A":
+      hand.num_aces += 1
+  
+    if hand.score > 21 and hand.num_aces > 0:
+      hand.score -= 10
+      hand.num_aces -= 1
+  
+      for card in hand.cards:
+        if card.card == "A":
+          card.value = 1
+          break
   
   def play_game(self):
+    ## TODO: Need to define bets
+    bet_input.config(state="disabled")
+    ## TODO: Need to check if seats have blackjack 
     print(len(self.curr_deck), self.reshuffle_cutoff)
     if len(self.curr_deck) < self.reshuffle_cutoff:
       self.shuffle_deck()
@@ -165,17 +191,23 @@ class BlackjackGameModel:
       if seat.type == SeatType.AI:
         ## TODO: Implement more difficult AI logic
         while seat.hand[0].score < 17:
-          deal_new_card(curr_deck, seat, seat.hand[0])
+          self.deal_new_card(seat, seat.hand[0])
       elif seat.type == SeatType.PLAYER:
+        hit_button.config(state="active")
+        double_down_button.config(state="active")
+        stand_button.config(state="active")
+        
         if len(seat.hand[0].cards) == 2:
           if seat.hand[0].cards[0].card == seat.hand[0].cards[1].card or seat.hand[0].cards[0].value == seat.hand[0].cards[1].value:
             split_button.config(state="active")
             
-        
-        stand_button.wait_variable(player_standing)
-        print(seat.hand[0].score)
+        stand_button.wait_variable(self.player_standing)
+        print("score", seat.hand[0].score)
   
         hit_button.config(state="disabled")
+        double_down_button.config(state="disabled")
+        split_button.config(state="disabled")
+        stand_button.config(state="disabled")
         
       elif seat.type == SeatType.DEALER:
         ## Reveal card
@@ -186,11 +218,32 @@ class BlackjackGameModel:
         ## TODO: Do not play out if any active hands (see original code)
   
         while seat.hand[0].score < 17:
-          deal_new_card(curr_deck, seat, seat.hand[0])
+          self.deal_new_card(seat, seat.hand[0])
   
         print(seat.hand[0].score)
+
+      print("player", seat, "has played")
     
     ## Calculate payouts
+
+    ## Config Buttons
+    play_button.config(state="active")
+
+  def hit_command(self):
+    ## Debug
+    print(self.player_standing.get())
+
+    seat = self.table[self.user_seat_no - 1]
+    hand = seat.hand[0]
+    self.deal_new_card(seat, hand)
+  
+    if hand.score > 21:
+      print('hit command function: bust')
+      self.stand_command()
+
+  def stand_command(self):
+    self.player_standing.set(not self.player_standing)
+    print(self.player_standing.get())
 
 class SeatType(Enum):
   PLAYER = 0
@@ -309,46 +362,6 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
 
   settings_window.mainloop()
 
-  
-
-
-def deal_new_card(deck, seat, hand):
-  # Deal a new card from the provided deck to the provided cards and update the provided score
-  new_card = random.choice(deck)
-  display_card(seat, 0, new_card) ## TODO: Fix hand_number to accommodate split
-  hand.cards.append(new_card)
-  hand.score += new_card.value
-  deck.remove(new_card)
-
-  if new_card.card == "A":
-    hand.num_aces += 1
-
-  if hand.score > 21 and hand.num_aces > 0:
-    hand.score -= 10
-    hand.num_aces -= 1
-
-    for card in hand.cards:
-      if card.card == "A":
-        card.value = 1
-        break
-
-def hit_command():
-  global seat, curr_deck
-  ## Debug
-  global player_standing
-  print(player_standing.get())
-
-  deal_new_card(curr_deck, seat, seat.hand[0])
-
-  if seat.hand[0].score > 21:
-    print('bust')
-    # global player_standing
-    player_standing.set(player_standing.get() + 1)
-
-
-
-
-
 if __name__ == "__main__":
   ## Set Default Values
   num_decks = 6
@@ -365,6 +378,14 @@ if __name__ == "__main__":
   # print(starting_money)
 
   ## Initialize main window
+  ## xx ---------------- xx
+  ## xx -----DEALER----- xx
+  ## xx -----TABLE------ xx
+  ## xx ---------------- xx
+  ## xx -PLAYER ACTIONS- xx
+  ## xx ---BET ACTION--- xx
+  ## xx ---------------- xx
+  
   root = tk.Tk()
   root.title("Blackjack")
   root.geometry("900x400")
@@ -374,32 +395,25 @@ if __name__ == "__main__":
   main_frame.pack(pady=10)
 
   gameModel = BlackjackGameModel(main_frame, num_decks, num_players, user_seat_no, starting_money)
-  
-  ## Setup table
-  # table = setup_table(main_frame, num_players, player_seat_no, starting_money, ai_money)
 
-  ## Create new deck for blackjack
-  # Define card and suit values for blackjack
-
-
-  # base_deck = create_deck(num_decks, suit_values, card_values)
-  # curr_deck, reshuffle_cutoff = base_deck, len(base_deck) + 1 # Initialize
-
-  ## TODO: Need to shuffle deck here to avoid modifying original deck
-  ## TODO: Need to define bets
-  ## TODO: Need to check if seats have blackjack 
-
-  ## Playing the Seat's Hand
   bet_frame = tk.Frame(root, bg="purple")
   bet_frame.pack(side=tk.BOTTOM, pady=10)
 
+  bet_label = tk.Label(bet_frame, text="Bet: ", font=("Helvetica", 14))
+  bet_label.grid(row=0,column=0)
+  
+  bet_value_var = tk.StringVar()
+  bet_value_var.set(gameModel.table[user_seat_no - 1].base_bet)
+  bet_input = tk.Entry(bet_frame, width=10, textvariable=bet_value_var, font=("Helvetica", 14), justify=tk.CENTER)
+  bet_input.grid(row=0,column=1)
+  
   play_button = tk.Button(bet_frame, text="Play (Submit Bet)", font=("Helvetica", 14), command=gameModel.reset_table)
-  play_button.grid(row=0,column=0)
+  play_button.grid(row=0,column=2)
   
   command_frame = tk.Frame(root, bg="gray")
   command_frame.pack(side=tk.BOTTOM)
   
-  hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14), state="disabled", command=hit_command)
+  hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14), state="disabled", command=gameModel.hit_command)
   hit_button.grid(row=0, column=0,padx=10)
 
   double_down_button = tk.Button(command_frame, text="Double Down", state="disabled", font=("Helvetica", 14))
@@ -408,8 +422,7 @@ if __name__ == "__main__":
   split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14), state="disabled")
   split_button.grid(row=0, column=2,padx=10)
 
-  player_standing = tk.IntVar()
-  stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), state="disabled", command=lambda: player_standing.set(player_standing.get() + 1))
+  stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), state="disabled", command=gameModel.stand_command)
   stand_button.grid(row=0, column=3,padx=10)
   
   root.mainloop()
