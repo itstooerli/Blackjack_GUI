@@ -19,6 +19,7 @@ class BlackjackGameModel:
     self.default_image = self.resize_card(f'cards/default.png')
     self.blackjack_payout_factor = 1.5
     self.starting_money = starting_money
+    self.active_user_hand = None ## State variable for which hand the user is currently acting on
 
   class Card:
     def __init__(self, suit=None, card=None, value=None, image=None):
@@ -37,12 +38,13 @@ class BlackjackGameModel:
       return copyobj
   
   class Hand:
-    def __init__(self, cards, score, num_aces, bet):
+    def __init__(self, cards, score, num_aces, bet, frame):
       self.cards = cards        # Stores an array of Cards
       self.score = score        # Stores the cumulative score
       self.num_aces = num_aces  # Stores the number of aces, since in Blackjack, Ace = 11 or 1
       self.bet = bet            # If the type is a player/AI, what is current bet up to
       self.status = HandStatus.ACTIVE  # Status of the hand
+      self.frame = frame        # Stores the frame for this Hand
 
   class Seat:
     def __init__(self, type, money=1000000, base_bet=100, frame=None):   
@@ -96,7 +98,7 @@ class BlackjackGameModel:
         table.append(self.Seat(SeatType.AI))
   
       ## Create a frame for this player
-      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}: ${table[player_no].money}', bd=0, bg = 'magenta')
+      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}: ${table[player_no].money}', bd=0, bg='magenta')
       frame.grid(row=0, column=player_no, padx=20)
       table[player_no].frame = frame
   
@@ -109,11 +111,9 @@ class BlackjackGameModel:
   def reset_table(self):
     play_button.config(state="disabled")
     for seat in self.table:
-      for label in seat.frame.winfo_children():
-        label.destroy()
+      for widget in seat.frame.winfo_children():
+        widget.destroy()
     
-    # print("number of labels:", len(self.table[0].frame.winfo_children()))
-    # print("curr_deck length:", len(self.curr_deck))
     self.play_game()
 
   def shuffle_deck(self):
@@ -121,15 +121,20 @@ class BlackjackGameModel:
     self.curr_deck = [card.copy() for card in self.base_deck]
     self.reshuffle_cutoff = random.randrange(math.floor(len(self.base_deck) * 0.25), math.floor(len(self.base_deck) * 0.5))
 
-  def display_card(self, seat, hand_number, new_card):
-    label = tk.Label(seat.frame, image=new_card.image)
-    label.grid(row=hand_number, column=len(seat.hand[hand_number].cards))
+  def display_card(self, hand, new_card):
+    ## Assumed display before cards array increased
+    label = tk.Label(hand.frame, image=new_card.image)
+    label.grid(row=0, column=len(hand.cards))
   
   def deal_cards(self):
-    # Initialize each seat's hand
+    # Initialize each seat's first hand
     for seat in self.table:
-      seat.hand = [self.Hand([], 0, 0, seat.base_bet)]
-  
+      hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
+      hand_frame.grid(row=0,column=0)
+      if seat.type != SeatType.DEALER:
+        action_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
+        action_label.grid(row=1,column=0,columnspan=2)
+      seat.hand = [self.Hand([], 0, 0, seat.base_bet, hand_frame)]
     self.table[-1].hand[0].status = HandStatus.DEALER
   
     # Deal each seat 2 cards
@@ -137,7 +142,7 @@ class BlackjackGameModel:
     while num_cards < 2:
       for seat in self.table:
         new_card = random.choice(self.curr_deck)
-        self.display_card(seat, 0, new_card)
+        self.display_card(seat.hand[0], new_card)
         seat.hand[0].cards.append(new_card)
         seat.hand[0].score += new_card.value
   
@@ -154,21 +159,14 @@ class BlackjackGameModel:
   
       num_cards = num_cards + 1
 
-    for seat in self.table:
-      if seat == self.table[-1]:
-        continue
-        
-      action_label = tk.Label(seat.frame, text=f'Bet ${seat.hand[0].bet}')
-      action_label.grid(row=1, column=0, columnspan=2)
-
     ## Hide the dealer's second card
-    label = tk.Label(self.table[-1].frame, image=self.default_image)
+    label = tk.Label(self.table[-1].hand[0].frame, image=self.default_image)
     label.grid(row=0,column=1)
 
-  def deal_new_card(self, seat, hand):
-    # Deal a new card from the provided deck to the provided cards and update the provided score
+  def deal_new_card(self, hand):
+    # Deal a new card to the provided hand
     new_card = random.choice(self.curr_deck)
-    self.display_card(seat, 0, new_card) ## TODO: Fix hand_number to accommodate split
+    self.display_card(hand, new_card)
     hand.cards.append(new_card)
     hand.score += new_card.value
     self.curr_deck.remove(new_card)
@@ -184,6 +182,15 @@ class BlackjackGameModel:
         if card.card == "A":
           card.value = 1
           break
+
+  def play_AI_hand_naive_strategy(self, hand):
+    while hand.score < 17:
+      self.deal_new_card(hand)
+
+    if hand.score > 21:
+      hand.status = HandStatus.LOSER
+    else:
+      hand.status = HandStatus.WAITING
   
   def play_game(self):
     ## TODO: Need to define bets
@@ -200,59 +207,74 @@ class BlackjackGameModel:
 
     bet_value_var.set(self.table[user_seat_no - 1].base_bet)
     
-    print(len(self.curr_deck), self.reshuffle_cutoff)
     if len(self.curr_deck) < self.reshuffle_cutoff:
       self.shuffle_deck()
-      print('shuffled', len(self.curr_deck))
   
     self.deal_cards()
     ## TODO: Need to check if seats have blackjack 
     dealer_hand = self.table[-1].hand[0]
     
     for index, seat in enumerate(self.table):
+      completed_hands = 0
       if seat.type == SeatType.AI:
         ## TODO: Implement more difficult AI logic
-        while seat.hand[0].score < 17:
-          self.deal_new_card(seat, seat.hand[0])
+        while completed_hands < len(seat.hand):
+          current_hand = seat.hand[completed_hands]
 
-        if seat.hand[0].score > 21:
-          seat.hand[0].status = HandStatus.LOSER
-        else:
-          seat.hand[0].status = HandStatus.WAITING
+          if current_hand.status == HandStatus.ACTIVE:
+            self.play_AI_hand_naive_strategy(current_hand)
+          
+          completed_hands += 1
         
       elif seat.type == SeatType.PLAYER:
-        hit_button.config(state="active")
-        if seat.base_bet * 2 <= seat.money:
-          double_down_button.config(state="active")
-        stand_button.config(state="active")
+        while completed_hands < len(seat.hand):
+          current_hand = seat.hand[completed_hands]
+
+          if current_hand.status == HandStatus.ACTIVE:
+            ## Activate relevant buttons
+            hit_button.config(state="active")
+            stand_button.config(state="active")
+            if seat.base_bet * 2 <= seat.money:
+              double_down_button.config(state="active")
+
+            if len(current_hand.cards) == 2:
+              if (current_hand.cards[0].card == current_hand.cards[1].card) or (current_hand.cards[0].value == current_hand.cards[1].value):
+                split_button.config(state="active")
+            
+            self.active_user_hand = current_hand
+            stand_button.wait_variable(self.player_standing)
         
-        if len(seat.hand[0].cards) == 2:
-          if seat.hand[0].cards[0].card == seat.hand[0].cards[1].card or seat.hand[0].cards[0].value == seat.hand[0].cards[1].value:
-            split_button.config(state="active")
-        
-        stand_button.wait_variable(self.player_standing)
-        
-        if seat.hand[0].score > 21:
-          seat.hand[0].status = HandStatus.LOSER
-        else:
-          seat.hand[0].status = HandStatus.WAITING
+            if current_hand.score > 21:
+              current_hand.status = HandStatus.LOSER
+            else:
+              current_hand.status = HandStatus.WAITING
           
-        # seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
-        hit_button.config(state="disabled")
-        double_down_button.config(state="disabled")
-        split_button.config(state="disabled")
-        stand_button.config(state="disabled")
+          hit_button.config(state="disabled")
+          double_down_button.config(state="disabled")
+          split_button.config(state="disabled")
+          stand_button.config(state="disabled")
+          completed_hands += 1
         
       elif seat.type == SeatType.DEALER:
         ## Reveal card
-        label = tk.Label(self.table[-1].frame, image=self.table[-1].hand[0].cards[-1].image)
+        label = tk.Label(self.table[-1].hand[0].frame, image=self.table[-1].hand[0].cards[-1].image)
         label.grid(row=0,column=1)
+        
         ## Play out rest of card
-  
-        ## TODO: Do not play out if any active hands (see original code)
-  
-        while seat.hand[0].score < 17:
-          self.deal_new_card(seat, seat.hand[0])
+        any_active_hands = False
+        
+        for seat in self.table:
+          if not any_active_hands:
+            for hand in seat.hand:
+              if hand.status == HandStatus.WAITING:
+                any_active_hands = True
+                break
+          else:
+            break
+
+        if any_active_hands:
+          while dealer_hand.score < 17:
+            self.deal_new_card(dealer_hand)
     
     ## Calculate payouts
     # Determine Winners/Losers
@@ -284,20 +306,18 @@ class BlackjackGameModel:
 
         if hand.status == HandStatus.DEALER:
           if hand.score > 21:
-            result_label = tk.Label(seat.frame, text=f'BUST {hand.score}')
-            result_label.grid(row=1, column=0, columnspan=2)
+            payout_text = f'BUST {hand.score}'
           else:
-            result_label = tk.Label(seat.frame, text=f'Total {hand.score}')
-            result_label.grid(row=1, column=0, columnspan=2)
+            payout_text = f'Total {hand.score}'
         elif payout > 0:
-          result_label = tk.Label(seat.frame, text=f'Winner +${payout}')
-          result_label.grid(row=1, column=0, columnspan=2)
+          payout_text = f'Winner +${payout}'
         elif payout < 0:
-          result_label = tk.Label(seat.frame, text=f'Loser -${-1 * payout}')
-          result_label.grid(row=1, column=0, columnspan=2)
+          payout_text = f'Loser -${-1 * payout}'
         else:
-          result_label = tk.Label(seat.frame, text=f'Tie +${payout}')
-          result_label.grid(row=1, column=0, columnspan=2)
+          payout_text = f'Tie +${payout}'
+
+        result_label = tk.Label(hand.frame, text=payout_text)
+        result_label.grid(row=1, column=0, columnspan=2)
         
       seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
       
@@ -310,18 +330,14 @@ class BlackjackGameModel:
     bet_input.config(state="normal")
 
   def hit_command(self):
-    user = self.table[self.user_seat_no - 1]
-    hand = user.hand[0]
-    self.deal_new_card(user, hand)
+    self.deal_new_card(self.active_user_hand)
   
-    if hand.score > 21:
+    if self.active_user_hand.score > 21:
       self.stand_command()
 
   def double_down_command(self):
-    user = self.table[self.user_seat_no - 1]
-    hand = user.hand[0]
-    self.deal_new_card(user, hand)
-    hand.bet *= 2
+    self.deal_new_card(self.active_user_hand)
+    self.active_user_hand.bet *= 2
     self.stand_command()
   
   def stand_command(self):
