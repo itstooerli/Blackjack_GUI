@@ -83,8 +83,8 @@ class BlackjackGameModel:
   def setup_table(self, main_frame, num_players, player_seat_no, player_money):
     ## Create frame for dealer above frame for rest of table
     dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, bg="blue")
-    dealer_frame.grid(row=0, column=0, padx=20, ipadx=20)
-    table_frame = tk.LabelFrame(main_frame, text="Table", bd=0, bg="yellow")
+    dealer_frame.grid(row=0, column=0, pady=20)
+    table_frame = tk.LabelFrame(main_frame, bd=0, bg="yellow")
     table_frame.grid(row=1, column=0, padx=20)
     
     # Create table as list of Seats
@@ -222,8 +222,27 @@ class BlackjackGameModel:
       self.shuffle_deck()
   
     self.deal_cards()
-    ## TODO: Need to check if seats have blackjack 
+    
+    # Check if seats have blackjack
     dealer_hand = self.table[-1].hand[0]
+    if dealer_hand.score == 21:
+      ## Reveal card
+      label = tk.Label(self.table[-1].hand[0].frame, image=self.table[-1].hand[0].cards[-1].image)
+      label.grid(row=0,column=1)
+
+      ## Check outcomes
+      for seat in self.table:
+        if seat.type == SeatType.DEALER:
+          continue
+        elif seat.hand[0].score == 21:
+          seat.hand[0].status = HandStatus.TIE
+        else:
+          seat.hand[0].status = HandStatus.LOSER
+    else:
+      for seat in self.table:
+        if seat.hand[0].score == 21:
+          seat.hand[0].status = HandStatus.BLACKJACK
+          seat.hand[0].status_label.config(text=f'BLACKJACK {seat.hand[0].score}, BET: {seat.hand[0].bet}')
     
     for index, seat in enumerate(self.table):
       completed_hands = 0
@@ -323,12 +342,14 @@ class BlackjackGameModel:
             payout_text = f'BUST {hand.score}'
           else:
             payout_text = f'Total {hand.score}'
+        elif hand.status == HandStatus.BLACKJACK:
+          payout_text = f'Blackjack Winner {hand.score} +${payout}'
         elif payout > 0:
           payout_text = f'Winner {hand.score} +${payout}'
         elif payout < 0:
           payout_text = f'Loser {hand.score} -${-1 * payout}'
         else:
-          payout_text = f'Tie {hand.score} +${payout}'
+          payout_text = f'Push {hand.score} +${payout}'
 
         hand.status_label.config(text=payout_text)
 
@@ -518,7 +539,7 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
 if __name__ == "__main__":
   ## Set Default Values
   num_decks = 6
-  num_players = 6
+  num_players = 3
   user_seat_no = 1
   starting_money = 1000
 
