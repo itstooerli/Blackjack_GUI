@@ -525,44 +525,12 @@ class BlackjackGameModel:
 
   def double_down(self, hand):
     self.deal_new_card(hand)
-    self.hand.bet *= 2
+    hand.bet *= 2
 
   def split_command(self):
     split_button.config(state="disabled")
     seat = self.table[self.user_seat_no - 1]
-    split_card = self.active_user_hand.cards[1]
-
-    ## TODO: Currently allow players to split and hit aces unlimited times, could change since Vegas sparingly does this
-    # if split_card.card == "A":
-    #   split_hand(curr_deck, seat, current_hand, split_card)
-    #   seat.hand[-1].status = HandStatus.WAITING
-    #   current_hand.status = HandStatus.WAITING
-    #   break
-    # else:
-    #   split_hand(curr_deck, seat, current_hand, split_card)
-    #   continue
-    
-    # Remove the split card from the current hand
-    self.active_user_hand.score -= split_card.value
-    self.active_user_hand.cards.pop()
-    self.active_user_hand.frame.winfo_children()[-1].destroy()
-  
-    # Create new hand
-    if split_card.card == "A":
-      split_card.value = 11
-      self.active_user_hand.num_aces -= 1
-
-    hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
-    hand_frame.grid(row=len(seat.hand),column=0)
-    status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
-    status_label.grid(row=1,column=0,columnspan=2)
-    seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame, status_label))
-    self.display_card(seat.hand[-1], split_card)
-    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
-      
-    # Deal both hands a new card
-    self.deal_new_card(self.active_user_hand)
-    self.deal_new_card(seat.hand[-1])
+    self.split_hand(seat, self.active_user_hand)
 
     if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card) or (self.active_user_hand.cards[0].value == self.active_user_hand.cards[1].value):
       split_button.config(state="active")
@@ -586,11 +554,11 @@ class BlackjackGameModel:
     status_label.grid(row=1,column=0,columnspan=2)
     seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame, status_label))
     self.display_card(seat.hand[-1], split_card)
-    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
 
     # Deal both hands a new card
     self.deal_new_card(hand)
     self.deal_new_card(seat.hand[-1])
+    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
 
   def stand_command(self):
     self.player_standing.set(not self.player_standing)
@@ -738,7 +706,7 @@ if __name__ == "__main__":
   
   root = tk.Tk()
   root.title("Blackjack")
-  root.geometry("900x500")
+  root.geometry(f"{700 + (num_players-3)*200}x500")
   root.configure(background="green")
 
   main_frame = tk.Frame(root, bg="orange")
