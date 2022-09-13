@@ -1,6 +1,5 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-# from functools import partial
 import random
 import math
 import copy
@@ -83,7 +82,7 @@ class BlackjackGameModel:
   def setup_table(self, main_frame, num_players, player_seat_no, player_money):
     ## Create frame for dealer above frame for rest of table
     dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, bg="blue")
-    dealer_frame.grid(row=0, column=0, pady=20)
+    dealer_frame.grid(row=0, column=0)
     table_frame = tk.LabelFrame(main_frame, bd=0, bg="yellow")
     table_frame.grid(row=1, column=0, padx=20)
     
@@ -709,13 +708,19 @@ if __name__ == "__main__":
   root.geometry(f"{700 + (num_players-3)*200}x500")
   root.configure(background="green")
   root.attributes('-zoomed', True)
-
-  main_frame = tk.Frame(root, bg="orange")
+  
+  canvas = tk.Canvas(root)
+  scrollbar = tk.Scrollbar(root)
+  scrollbar.pack(side = tk.RIGHT, fill = tk.Y)
+  canvas.configure(yscrollcommand = scrollbar.set)
+  canvas.pack()
+  
+  main_frame = tk.Frame(canvas, bg="orange")
   main_frame.pack(pady=10)
 
   gameModel = BlackjackGameModel(main_frame, num_decks, num_players, user_seat_no, starting_money)
 
-  bet_frame = tk.Frame(root, bg="purple")
+  bet_frame = tk.Frame(canvas, bg="purple")
   bet_frame.pack(side=tk.BOTTOM, pady=10)
 
   bet_label = tk.Label(bet_frame, text="Bet: ", font=("Helvetica", 14))
@@ -729,7 +734,7 @@ if __name__ == "__main__":
   play_button = tk.Button(bet_frame, text="Play (Submit Bet)", font=("Helvetica", 14), command=gameModel.reset_table)
   play_button.grid(row=0,column=2)
   
-  command_frame = tk.Frame(root, bg="gray")
+  command_frame = tk.Frame(canvas, bg="gray")
   command_frame.pack(side=tk.BOTTOM)
   
   hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14), state="disabled", command=gameModel.hit_command)
