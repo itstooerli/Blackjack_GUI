@@ -202,7 +202,154 @@ class BlackjackGameModel:
     else:
       hand.status = HandStatus.WAITING
       hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+
+  def play_AI_hand_basic_strategy(self, seat, hand):
+    """
+    # Defining Basic Strategy
+    # - Always split As and 8s
+    # - Never split 5s and 10s
+    # - Split 2s and 3s against Dealer 2-7
+    # - Split 4s against Dealer 5-6
+    # - Split 6s against Dealer 2-6
+    # - Split 7s against Dealer 2-7
+    # - Split 9s against Dealer 2-6 or 8-9
+    # - Double hard 9 against Dealer 3-6
+    # - Double hard 10 against Dealer 2-9
+    # - Double hard 11 against Dealer 2-K 
+    # - Double soft 13 or 14 against Dealer 5-6
+    # - Double soft 15 or 16 against Dealer 4-6
+    # - Double soft 17 or 18 against Dealer 3-6
+    # - Always hit hard 11 or less
+    # - Stand on hard 12 against dealer 4-6, otherwise hit
+    # - Stand on hard 13-16 against dealer 2-6, otherwise hit
+    # - Always stand on hard 17 or more
+    # - Always hit soft 17 or less
+    # - Stand on soft 18 except hit against Dealer 9-A 
+    # - Always stand on soft 19 or more
+    """
+    
+    dealer_shown_card = self.table[-1].hand[0].cards[0]
   
+    while hand.score < 21:
+      if len(hand.cards) == 2:
+        # Assess Split
+        if hand.cards[0].card == hand.cards[1].card:
+          # Only need to look at card and not value because we never split 10s anyways
+          split_card = hand.cards[1]
+    
+          if split_card.card == "A":
+            self.split_hand(seat, hand)
+            seat.hand[-1].status = HandStatus.WAITING
+            hand.status = HandStatus.WAITING
+            break
+          elif split_card.card in ("2", "3"):
+            if dealer_shown_card.value in (2,3,4,5,6,7):
+              self.split_hand(seat, hand)
+              continue
+          elif split_card.card == "4":
+            if dealer_shown_card.value in (5,6):
+              self.split_hand(seat, hand)
+              continue
+          elif split_card.card == "5":
+            pass
+          elif split_card.card == "6":
+            if dealer_shown_card.value in (2,3,4,5,6):
+              self.split_hand(seat, hand)
+              continue
+          elif split_card.card == "7":
+            if dealer_shown_card.value in (2,3,4,5,6,7):
+              self.split_hand(seat, hand)
+              continue
+          elif split_card.card == "8":
+            self.split_hand(seat, hand)
+            continue
+          elif split_card.card == "9":
+            if dealer_shown_card.value in (2,3,4,5,6,8,9):
+              self.split_hand(seat, hand)
+              continue
+          else:  # 10, J, Q, K
+            pass
+  
+        # Assess Double
+        if hand.num_aces == 0:
+          if hand.score == 9:
+            if dealer_shown_card.value in (3,4,5,6):  
+              self.double_down(hand)
+              hand.status = HandStatus.WAITING
+              hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+              break
+          elif hand.score == 10:
+            if dealer_shown_card.value in (2,3,4,5,6,7,8,9):
+              self.double_down(hand)
+              hand.status = HandStatus.WAITING
+              hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+              break
+          elif hand.score == 11:
+            if dealer_shown_card.value in (2,3,4,5,6,7,8,9,10):
+              self.double_down(hand)
+              hand.status = HandStatus.WAITING
+              hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+              break
+        else:
+          if hand.score in (13,14):
+            if dealer_shown_card.value in (5,6):
+              self.double_down(hand)
+              hand.status = HandStatus.WAITING
+              hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+              break
+          elif hand.score in (15,16):
+            if dealer_shown_card.value in (4,5,6):
+              self.double_down(hand)
+              hand.status = HandStatus.WAITING
+              hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+              break
+          elif hand.score in (17,18):
+            if dealer_shown_card.value in (3,4,5,6):
+              self.double_down(hand)
+              hand.status = HandStatus.WAITING
+              hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+              break
+    
+      if hand.num_aces == 0:
+        if hand.score <= 11:
+          self.deal_new_card(hand)
+        elif hand.score == 12:
+          if dealer_shown_card.value in (4,5,6):
+            hand.status = HandStatus.WAITING
+            hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+            break
+          else:
+            self.deal_new_card(hand)
+        elif hand.score in (13,14,15,16):
+          if dealer_shown_card.value in (2,3,4,5,6):
+            hand.status = HandStatus.WAITING
+            hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+            break
+          else:
+            self.deal_new_card(hand)
+        else:
+          hand.status = HandStatus.WAITING
+          hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+          break
+      else:
+        if hand.score <= 17:
+          self.deal_new_card(hand)
+        elif hand.score == 18:
+          if dealer_shown_card.value in (9,10,11):
+            self.deal_new_card(hand)
+          else:
+            hand.status = HandStatus.WAITING
+            hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+            break
+        else:
+          hand.status = HandStatus.WAITING
+          hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
+          break
+    if hand.score > 21:
+      hand.status = HandStatus.LOSER
+      hand.status_label.config(text=f'BUST {hand.score}, BET: {hand.bet}')
+
+
   def play_game(self):
     ## TODO: Need to define bets
     bet_input.config(state="disabled")
@@ -252,7 +399,8 @@ class BlackjackGameModel:
           current_hand = seat.hand[completed_hands]
 
           if current_hand.status == HandStatus.ACTIVE:
-            self.play_AI_hand_naive_strategy(current_hand)
+            # self.play_AI_hand_naive_strategy(current_hand)
+            self.play_AI_hand_basic_strategy(seat, current_hand)
           
           completed_hands += 1
         
@@ -372,9 +520,12 @@ class BlackjackGameModel:
       self.stand_command()
 
   def double_down_command(self):
-    self.deal_new_card(self.active_user_hand)
-    self.active_user_hand.bet *= 2
+    self.double_down(self.active_user_hand)
     self.stand_command()
+
+  def double_down(self, hand):
+    self.deal_new_card(hand)
+    self.hand.bet *= 2
 
   def split_command(self):
     split_button.config(state="disabled")
@@ -415,7 +566,32 @@ class BlackjackGameModel:
 
     if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card) or (self.active_user_hand.cards[0].value == self.active_user_hand.cards[1].value):
       split_button.config(state="active")
-  
+
+  def split_hand(self, seat, hand):
+    split_card = hand.cards[1]
+    
+    # Remove the split card from the current hand
+    hand.score -= split_card.value
+    hand.cards.pop()
+    hand.frame.winfo_children()[-1].destroy()
+
+    # Create new hand
+    if split_card.card == "A":
+      split_card.value = 11
+      hand.num_aces -= 1
+
+    hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
+    hand_frame.grid(row=len(seat.hand),column=0)
+    status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
+    status_label.grid(row=1,column=0,columnspan=2)
+    seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame, status_label))
+    self.display_card(seat.hand[-1], split_card)
+    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
+
+    # Deal both hands a new card
+    self.deal_new_card(hand)
+    self.deal_new_card(seat.hand[-1])
+
   def stand_command(self):
     self.player_standing.set(not self.player_standing)
 
