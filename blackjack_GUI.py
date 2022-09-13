@@ -460,7 +460,7 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
     global num_decks
     try:
       input_num_decks = int(float(num_decks_var.get()))
-      if 0 < input_num_decks < 101:
+      if 0 < input_num_decks < 11:
         num_decks = input_num_decks
       
       num_decks_var.set(num_decks)
@@ -471,7 +471,7 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
     global num_players
     try:
       input_num_players = int(float(num_players_var.get()))
-      if 0 < input_num_players < 11:
+      if 0 < input_num_players < 7:
         num_players = input_num_players
   
       num_players_var.set(num_players)
@@ -503,14 +503,14 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
   def start_game():
     settings_window.destroy()
   
-  label_num_decks = tk.Label(text="Number of decks [1, 100]: ")
+  label_num_decks = tk.Label(text="Number of decks [1, 10]: ")
   entry_num_decks = tk.Entry(width=entry_width, textvariable=num_decks_var)
   button_num_decks = tk.Button(text="Submit",command=set_num_decks)
   label_num_decks.grid(row=1,column=0)
   entry_num_decks.grid(row=1,column=1)
   button_num_decks.grid(row=1,column=2)
   
-  label_num_players = tk.Label(text="Number of players (player + computer) [1,10]: ")
+  label_num_players = tk.Label(text="Number of players (player + computer) [1,6]: ")
   entry_num_players = tk.Entry(width=entry_width, textvariable=num_players_var)
   button_num_players = tk.Button(text="Submit",command=set_num_players)
   label_num_players.grid(row=2,column=0)
@@ -544,7 +544,7 @@ if __name__ == "__main__":
   starting_money = 1000
 
   ## TODO: Figure out how to move this function to a different script
-  # define_settings(num_decks, num_players, user_seat_no, starting_money)
+  define_settings(num_decks, num_players, user_seat_no, starting_money)
   ## For Debugging
   # print(num_decks)
   # print(num_players)
