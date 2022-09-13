@@ -152,6 +152,13 @@ class BlackjackGameModel:
   
       num_cards = num_cards + 1
 
+    for seat in self.table:
+      if seat == self.table[-1]:
+        continue
+        
+      action_label = tk.Label(seat.frame, text=f'Bet ${seat.hand[0].bet}')
+      action_label.grid(row=1, column=0, columnspan=2)
+
     ## Hide the dealer's second card
     label = tk.Label(self.table[-1].frame, image=self.default_image)
     label.grid(row=0,column=1)
@@ -213,10 +220,8 @@ class BlackjackGameModel:
         if len(seat.hand[0].cards) == 2:
           if seat.hand[0].cards[0].card == seat.hand[0].cards[1].card or seat.hand[0].cards[0].value == seat.hand[0].cards[1].value:
             split_button.config(state="active")
-
-        print("money:", seat.money)
+        
         stand_button.wait_variable(self.player_standing)
-        seat.money -= 1
         seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
         hit_button.config(state="disabled")
         double_down_button.config(state="disabled")
