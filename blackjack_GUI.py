@@ -122,9 +122,9 @@ class BlackjackGameModel:
     self.reshuffle_cutoff = random.randrange(math.floor(len(self.base_deck) * 0.25), math.floor(len(self.base_deck) * 0.5))
 
   def display_card(self, hand, new_card):
-    ## Assumed display before cards array increased
+    ## Assumed display after cards array increased
     label = tk.Label(hand.frame, image=new_card.image)
-    label.grid(row=0, column=len(hand.cards))
+    label.grid(row=0, column=(len(hand.cards) - 1))
   
   def deal_cards(self):
     # Initialize each seat's first hand
@@ -142,13 +142,14 @@ class BlackjackGameModel:
     while num_cards < 2:
       for seat in self.table:
         new_card = random.choice(self.curr_deck)
-        self.display_card(seat.hand[0], new_card)
+
         seat.hand[0].cards.append(new_card)
         seat.hand[0].score += new_card.value
-  
         if new_card.card == "A":
           seat.hand[0].num_aces += 1
-  
+          
+        self.display_card(seat.hand[0], new_card)
+        
         self.curr_deck.remove(new_card)
   
         # If hand receives two aces, treat one of the aces as a 1
@@ -166,9 +167,10 @@ class BlackjackGameModel:
   def deal_new_card(self, hand):
     # Deal a new card to the provided hand
     new_card = random.choice(self.curr_deck)
-    self.display_card(hand, new_card)
     hand.cards.append(new_card)
     hand.score += new_card.value
+    self.display_card(hand, new_card)
+    
     self.curr_deck.remove(new_card)
   
     if new_card.card == "A":
@@ -339,6 +341,45 @@ class BlackjackGameModel:
     self.deal_new_card(self.active_user_hand)
     self.active_user_hand.bet *= 2
     self.stand_command()
+
+  def split_command(self):
+    split_button.config(state="disabled")
+    seat = self.table[self.user_seat_no - 1]
+    split_card = self.active_user_hand.cards[1]
+
+    ## TODO: Currently allow players to split and hit aces unlimited times, could change since Vegas sparingly does this
+    # if split_card.card == "A":
+    #   split_hand(curr_deck, seat, current_hand, split_card)
+    #   seat.hand[-1].status = HandStatus.WAITING
+    #   current_hand.status = HandStatus.WAITING
+    #   break
+    # else:
+    #   split_hand(curr_deck, seat, current_hand, split_card)
+    #   continue
+    
+    # Remove the split card from the current hand
+    self.active_user_hand.score -= split_card.value
+    self.active_user_hand.cards.pop()
+    self.active_user_hand.frame.winfo_children()[-1].destroy()
+  
+    # Create new hand
+    if split_card.card == "A":
+      split_card.value = 11
+      self.active_user_hand.num_aces -= 1
+
+    hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
+    hand_frame.grid(row=len(seat.hand),column=0)
+    action_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
+    action_label.grid(row=1,column=0,columnspan=2)
+    seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame))
+    self.display_card(seat.hand[-1], split_card)
+      
+    # Deal both hands a new card
+    self.deal_new_card(self.active_user_hand)
+    self.deal_new_card(seat.hand[-1])
+
+    if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card) or (self.active_user_hand.cards[0].value == self.active_user_hand.cards[1].value):
+      split_button.config(state="active")
   
   def stand_command(self):
     self.player_standing.set(not self.player_standing)
@@ -486,7 +527,7 @@ if __name__ == "__main__":
   
   root = tk.Tk()
   root.title("Blackjack")
-  root.geometry("900x400")
+  root.geometry("900x500")
   root.configure(background="green")
 
   main_frame = tk.Frame(root, bg="orange")
@@ -517,7 +558,7 @@ if __name__ == "__main__":
   double_down_button = tk.Button(command_frame, text="Double Down", state="disabled", font=("Helvetica", 14), command=gameModel.double_down_command)
   double_down_button.grid(row=0, column=1,padx=10)
 
-  split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14), state="disabled")
+  split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14), state="disabled", command=gameModel.split_command)
   split_button.grid(row=0, column=2,padx=10)
 
   stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), state="disabled", command=gameModel.stand_command)
