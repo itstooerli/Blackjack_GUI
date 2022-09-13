@@ -38,13 +38,14 @@ class BlackjackGameModel:
       return copyobj
   
   class Hand:
-    def __init__(self, cards, score, num_aces, bet, frame):
+    def __init__(self, cards, score, num_aces, bet, frame=None, status_label=None):
       self.cards = cards        # Stores an array of Cards
       self.score = score        # Stores the cumulative score
       self.num_aces = num_aces  # Stores the number of aces, since in Blackjack, Ace = 11 or 1
       self.bet = bet            # If the type is a player/AI, what is current bet up to
       self.status = HandStatus.ACTIVE  # Status of the hand
       self.frame = frame        # Stores the frame for this Hand
+      self.status_label = status_label  # Stores the status widget to be updated for this hand
 
   class Seat:
     def __init__(self, type, money=1000000, base_bet=100, frame=None):   
@@ -131,10 +132,9 @@ class BlackjackGameModel:
     for seat in self.table:
       hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
       hand_frame.grid(row=0,column=0)
-      if seat.type != SeatType.DEALER:
-        action_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
-        action_label.grid(row=1,column=0,columnspan=2)
-      seat.hand = [self.Hand([], 0, 0, seat.base_bet, hand_frame)]
+      status_label = tk.Label(hand_frame)
+      status_label.grid(row=1,column=0,columnspan=2)
+      seat.hand = [self.Hand([], 0, 0, seat.base_bet, hand_frame, status_label)]
     self.table[-1].hand[0].status = HandStatus.DEALER
   
     # Deal each seat 2 cards
@@ -157,12 +157,17 @@ class BlackjackGameModel:
           seat.hand[0].cards[1].value = 1
           seat.hand[0].score = 12
           seat.hand[0].num_aces -= 1
+
+        if num_cards + 1 == 2:
+          ## If this is the second card, update the status label
+          seat.hand[0].status_label.config(text=f'WAITING {seat.hand[0].score}, BET: {seat.hand[0].bet}')
   
       num_cards = num_cards + 1
 
     ## Hide the dealer's second card
     label = tk.Label(self.table[-1].hand[0].frame, image=self.default_image)
     label.grid(row=0,column=1)
+    self.table[-1].hand[0].status_label.config(text=f'Total: {self.table[-1].hand[0].cards[0].value}')
 
   def deal_new_card(self, hand):
     # Deal a new card to the provided hand
@@ -185,14 +190,18 @@ class BlackjackGameModel:
           card.value = 1
           break
 
+    hand.status_label.config(text=f'ACTIVE {hand.score}, BET: {hand.bet}')
+
   def play_AI_hand_naive_strategy(self, hand):
     while hand.score < 17:
       self.deal_new_card(hand)
 
     if hand.score > 21:
       hand.status = HandStatus.LOSER
+      hand.status_label.config(text=f'BUST {hand.score}, BET: {hand.bet}')
     else:
       hand.status = HandStatus.WAITING
+      hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
   
   def play_game(self):
     ## TODO: Need to define bets
@@ -200,7 +209,7 @@ class BlackjackGameModel:
     try:
       user_bet_val = int(bet_value_var.get())
 
-      if user_bet_val < self.table[self.user_seat_no - 1].money:
+      if user_bet_val <= self.table[self.user_seat_no - 1].money:
         self.table[self.user_seat_no - 1].base_bet = user_bet_val
       else:
         self.table[self.user_seat_no - 1].base_bet = min(100, -(-self.table[self.user_seat_no - 1].money // 10))
@@ -233,6 +242,7 @@ class BlackjackGameModel:
           current_hand = seat.hand[completed_hands]
 
           if current_hand.status == HandStatus.ACTIVE:
+            current_hand.status_label.config(text=f'ACTIVE {current_hand.score}, BET: {current_hand.bet}')
             ## Activate relevant buttons
             hit_button.config(state="active")
             stand_button.config(state="active")
@@ -248,8 +258,10 @@ class BlackjackGameModel:
         
             if current_hand.score > 21:
               current_hand.status = HandStatus.LOSER
+              current_hand.status_label.config(text=f'BUST {current_hand.score}, BET: {current_hand.bet}')
             else:
               current_hand.status = HandStatus.WAITING
+              current_hand.status_label.config(text=f'STAND {current_hand.score}, BET: {current_hand.bet}')
           
           hit_button.config(state="disabled")
           double_down_button.config(state="disabled")
@@ -312,20 +324,21 @@ class BlackjackGameModel:
           else:
             payout_text = f'Total {hand.score}'
         elif payout > 0:
-          payout_text = f'Winner +${payout}'
+          payout_text = f'Winner {hand.score} +${payout}'
         elif payout < 0:
-          payout_text = f'Loser -${-1 * payout}'
+          payout_text = f'Loser {hand.score} -${-1 * payout}'
         else:
-          payout_text = f'Tie +${payout}'
+          payout_text = f'Tie {hand.score} +${payout}'
 
-        result_label = tk.Label(hand.frame, text=payout_text)
-        result_label.grid(row=1, column=0, columnspan=2)
-        
-      seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
+        hand.status_label.config(text=payout_text)
+
+      if index < len(self.table) - 1:
+        seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
       
       if seat.type == SeatType.PLAYER and seat.money <= 0:
         ## TODO: Figure out what to do if out of money
         seat.money = self.starting_money
+        seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
 
     ## Config Buttons
     play_button.config(state="normal")
@@ -369,10 +382,11 @@ class BlackjackGameModel:
 
     hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
     hand_frame.grid(row=len(seat.hand),column=0)
-    action_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
-    action_label.grid(row=1,column=0,columnspan=2)
-    seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame))
+    status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
+    status_label.grid(row=1,column=0,columnspan=2)
+    seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame, status_label))
     self.display_card(seat.hand[-1], split_card)
+    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
       
     # Deal both hands a new card
     self.deal_new_card(self.active_user_hand)
