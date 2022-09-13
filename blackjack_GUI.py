@@ -16,6 +16,7 @@ class BlackjackGameModel:
     self.curr_deck = []
     self.reshuffle_cutoff = 1
     self.player_standing = tk.BooleanVar()
+    self.default_image = self.resize_card(f'cards/default.png')
 
   class Card:
     def __init__(self, suit=None, card=None, value=None, image=None):
@@ -93,7 +94,7 @@ class BlackjackGameModel:
         table.append(self.Seat(SeatType.AI))
   
       ## Create a frame for this player
-      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}', bd=0, bg = 'magenta')
+      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}: ${table[player_no].money}', bd=0, bg = 'magenta')
       frame.grid(row=0, column=player_no, padx=20)
       table[player_no].frame = frame
   
@@ -152,8 +153,7 @@ class BlackjackGameModel:
       num_cards = num_cards + 1
 
     ## Hide the dealer's second card
-    default_image = self.resize_card(f'cards/default.png') ## TODO: Optimize to avoid always resizing the same image
-    label = tk.Label(self.table[-1].frame, image=default_image)
+    label = tk.Label(self.table[-1].frame, image=self.default_image)
     label.grid(row=0,column=1)
 
   def deal_new_card(self, seat, hand):
@@ -199,23 +199,25 @@ class BlackjackGameModel:
     self.deal_cards()
     ## TODO: Need to check if seats have blackjack 
     
-    for seat in self.table:
+    for index, seat in enumerate(self.table):
       if seat.type == SeatType.AI:
         ## TODO: Implement more difficult AI logic
         while seat.hand[0].score < 17:
           self.deal_new_card(seat, seat.hand[0])
       elif seat.type == SeatType.PLAYER:
         hit_button.config(state="active")
-        double_down_button.config(state="active")
+        if seat.base_bet * 2 <= seat.money:
+          double_down_button.config(state="active")
         stand_button.config(state="active")
         
         if len(seat.hand[0].cards) == 2:
           if seat.hand[0].cards[0].card == seat.hand[0].cards[1].card or seat.hand[0].cards[0].value == seat.hand[0].cards[1].value:
             split_button.config(state="active")
-            
+
+        print("money:", seat.money)
         stand_button.wait_variable(self.player_standing)
-        print("score", seat.hand[0].score)
-  
+        seat.money -= 1
+        seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
         hit_button.config(state="disabled")
         double_down_button.config(state="disabled")
         split_button.config(state="disabled")
@@ -232,7 +234,7 @@ class BlackjackGameModel:
         while seat.hand[0].score < 17:
           self.deal_new_card(seat, seat.hand[0])
   
-        print(seat.hand[0].score)
+      print(seat.hand[0].bet, seat.hand[0].score)
     
     ## Calculate payouts
 
@@ -241,13 +243,21 @@ class BlackjackGameModel:
     bet_input.config(state="normal")
 
   def hit_command(self):
-    seat = self.table[self.user_seat_no - 1]
-    hand = seat.hand[0]
-    self.deal_new_card(seat, hand)
+    user = self.table[self.user_seat_no - 1]
+    hand = user.hand[0]
+    self.deal_new_card(user, hand)
   
     if hand.score > 21:
       self.stand_command()
 
+  def double_down_command(self):
+    user = self.table[self.user_seat_no - 1]
+    hand = user.hand[0]
+    self.deal_new_card(user, hand)
+    hand.bet *= 2
+    hand.status = HandStatus.WAITING
+    self.stand_command()
+  
   def stand_command(self):
     self.player_standing.set(not self.player_standing)
 
@@ -422,7 +432,7 @@ if __name__ == "__main__":
   hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14), state="disabled", command=gameModel.hit_command)
   hit_button.grid(row=0, column=0,padx=10)
 
-  double_down_button = tk.Button(command_frame, text="Double Down", state="disabled", font=("Helvetica", 14))
+  double_down_button = tk.Button(command_frame, text="Double Down", state="disabled", font=("Helvetica", 14), command=gameModel.double_down_command)
   double_down_button.grid(row=0, column=1,padx=10)
 
   split_button = tk.Button(command_frame, text="Split", font=("Helvetica", 14), state="disabled")
