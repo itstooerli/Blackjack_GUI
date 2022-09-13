@@ -17,6 +17,8 @@ class BlackjackGameModel:
     self.reshuffle_cutoff = 1
     self.player_standing = tk.BooleanVar()
     self.default_image = self.resize_card(f'cards/default.png')
+    self.blackjack_payout_factor = 1.5
+    self.starting_money = starting_money
 
   class Card:
     def __init__(self, suit=None, card=None, value=None, image=None):
@@ -205,12 +207,19 @@ class BlackjackGameModel:
   
     self.deal_cards()
     ## TODO: Need to check if seats have blackjack 
+    dealer_hand = self.table[-1].hand[0]
     
     for index, seat in enumerate(self.table):
       if seat.type == SeatType.AI:
         ## TODO: Implement more difficult AI logic
         while seat.hand[0].score < 17:
           self.deal_new_card(seat, seat.hand[0])
+
+        if seat.hand[0].score > 21:
+          seat.hand[0].status = HandStatus.LOSER
+        else:
+          seat.hand[0].status = HandStatus.WAITING
+        
       elif seat.type == SeatType.PLAYER:
         hit_button.config(state="active")
         if seat.base_bet * 2 <= seat.money:
@@ -222,7 +231,13 @@ class BlackjackGameModel:
             split_button.config(state="active")
         
         stand_button.wait_variable(self.player_standing)
-        seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
+        
+        if seat.hand[0].score > 21:
+          seat.hand[0].status = HandStatus.LOSER
+        else:
+          seat.hand[0].status = HandStatus.WAITING
+          
+        # seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
         hit_button.config(state="disabled")
         double_down_button.config(state="disabled")
         split_button.config(state="disabled")
@@ -238,10 +253,57 @@ class BlackjackGameModel:
   
         while seat.hand[0].score < 17:
           self.deal_new_card(seat, seat.hand[0])
-  
-      print(seat.hand[0].bet, seat.hand[0].score)
     
     ## Calculate payouts
+    # Determine Winners/Losers
+    for seat in self.table:
+      for hand in seat.hand:
+        if hand.status == HandStatus.WAITING:
+          if dealer_hand.score > 21:
+            hand.status = HandStatus.WINNER
+          elif hand.score == dealer_hand.score:
+            hand.status = HandStatus.TIE
+          elif hand.score > dealer_hand.score:
+            hand.status = HandStatus.WINNER
+          else:
+            hand.status = HandStatus.LOSER
+    
+    # Determine Payouts
+    for index, seat in enumerate(self.table):
+      for hand in seat.hand:
+        payout = 0
+        
+        if hand.status == HandStatus.BLACKJACK:
+          payout = hand.bet * self.blackjack_payout_factor
+        elif hand.status == HandStatus.WINNER:
+          payout = hand.bet
+        elif hand.status == HandStatus.LOSER:
+          payout = -1 * hand.bet
+        
+        seat.money += payout
+
+        if hand.status == HandStatus.DEALER:
+          if hand.score > 21:
+            result_label = tk.Label(seat.frame, text=f'BUST {hand.score}')
+            result_label.grid(row=1, column=0, columnspan=2)
+          else:
+            result_label = tk.Label(seat.frame, text=f'Total {hand.score}')
+            result_label.grid(row=1, column=0, columnspan=2)
+        elif payout > 0:
+          result_label = tk.Label(seat.frame, text=f'Winner +${payout}')
+          result_label.grid(row=1, column=0, columnspan=2)
+        elif payout < 0:
+          result_label = tk.Label(seat.frame, text=f'Loser -${-1 * payout}')
+          result_label.grid(row=1, column=0, columnspan=2)
+        else:
+          result_label = tk.Label(seat.frame, text=f'Tie +${payout}')
+          result_label.grid(row=1, column=0, columnspan=2)
+        
+      seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
+      
+      if seat.type == SeatType.PLAYER and seat.money <= 0:
+        ## TODO: Figure out what to do if out of money
+        seat.money = self.starting_money
 
     ## Config Buttons
     play_button.config(state="normal")
@@ -260,7 +322,6 @@ class BlackjackGameModel:
     hand = user.hand[0]
     self.deal_new_card(user, hand)
     hand.bet *= 2
-    hand.status = HandStatus.WAITING
     self.stand_command()
   
   def stand_command(self):
