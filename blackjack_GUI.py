@@ -708,6 +708,7 @@ if __name__ == "__main__":
   root.title("Blackjack")
   root.geometry(f"{700 + (num_players-3)*200}x500")
   root.configure(background="green")
+  root.attributes('-zoomed', True)
 
   main_frame = tk.Frame(root, bg="orange")
   main_frame.pack(pady=10)
