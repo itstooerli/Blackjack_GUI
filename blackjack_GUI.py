@@ -179,13 +179,25 @@ class BlackjackGameModel:
   def play_game(self):
     ## TODO: Need to define bets
     bet_input.config(state="disabled")
-    ## TODO: Need to check if seats have blackjack 
+    try:
+      user_bet_val = int(bet_value_var.get())
+
+      if user_bet_val < self.table[self.user_seat_no - 1].money:
+        self.table[self.user_seat_no - 1].base_bet = user_bet_val
+      else:
+        self.table[self.user_seat_no - 1].base_bet = min(100, -(-self.table[self.user_seat_no - 1].money // 10))
+    except:
+      self.table[self.user_seat_no - 1].base_bet = min(100, -(-self.table[self.user_seat_no - 1].money // 10))
+
+    bet_value_var.set(self.table[user_seat_no - 1].base_bet)
+    
     print(len(self.curr_deck), self.reshuffle_cutoff)
     if len(self.curr_deck) < self.reshuffle_cutoff:
       self.shuffle_deck()
       print('shuffled', len(self.curr_deck))
   
     self.deal_cards()
+    ## TODO: Need to check if seats have blackjack 
     
     for seat in self.table:
       if seat.type == SeatType.AI:
@@ -221,29 +233,23 @@ class BlackjackGameModel:
           self.deal_new_card(seat, seat.hand[0])
   
         print(seat.hand[0].score)
-
-      print("player", seat, "has played")
     
     ## Calculate payouts
 
     ## Config Buttons
-    play_button.config(state="active")
+    play_button.config(state="normal")
+    bet_input.config(state="normal")
 
   def hit_command(self):
-    ## Debug
-    print(self.player_standing.get())
-
     seat = self.table[self.user_seat_no - 1]
     hand = seat.hand[0]
     self.deal_new_card(seat, hand)
   
     if hand.score > 21:
-      print('hit command function: bust')
       self.stand_command()
 
   def stand_command(self):
     self.player_standing.set(not self.player_standing)
-    print(self.player_standing.get())
 
 class SeatType(Enum):
   PLAYER = 0
