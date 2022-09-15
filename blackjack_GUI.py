@@ -4,6 +4,7 @@ import random
 import math
 import copy
 from enum import Enum
+import sys
 # import blackjack_settings
 
 class BlackjackGameModel:
@@ -679,6 +680,15 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
 
   settings_window.mainloop()
 
+def on_exit():
+  ## This is necessary since we automatically start waiting for user command and
+  ## tkinter will start a mini-loop and won't exit the program even if the user
+  ## has closed it. This solution allows the mini-loop to break, system to quit,
+  ## then the objects to be destroyed
+  gameModel.stand_command()
+  root.quit()
+
+
 if __name__ == "__main__":
   ## Set Default Values
   num_decks = 6
@@ -742,4 +752,5 @@ if __name__ == "__main__":
   stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), state="disabled", command=gameModel.stand_command)
   stand_button.grid(row=0, column=3,padx=10)
 
+  root.protocol('WM_DELETE_WINDOW', on_exit)
   root.mainloop()
