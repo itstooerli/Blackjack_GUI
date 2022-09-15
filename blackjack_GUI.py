@@ -551,7 +551,7 @@ class BlackjackGameModel:
     hand_frame.grid(row=len(seat.hand),column=0)
     status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
     status_label.grid(row=1,column=0,columnspan=2)
-    seat.hand.append(self.Hand([split_card], split_card.value, self.active_user_hand.num_aces, seat.base_bet, hand_frame, status_label))
+    seat.hand.append(self.Hand([split_card], split_card.value, hand.num_aces, seat.base_bet, hand_frame, status_label))
     self.display_card(seat.hand[-1], split_card)
 
     # Deal both hands a new card
@@ -707,20 +707,13 @@ if __name__ == "__main__":
   root.title("Blackjack")
   root.geometry(f"{700 + (num_players-3)*200}x500")
   root.configure(background="green")
-  root.attributes('-zoomed', True)
   
-  canvas = tk.Canvas(root)
-  scrollbar = tk.Scrollbar(root)
-  scrollbar.pack(side = tk.RIGHT, fill = tk.Y)
-  canvas.configure(yscrollcommand = scrollbar.set)
-  canvas.pack()
-  
-  main_frame = tk.Frame(canvas, bg="orange")
+  main_frame = tk.Frame(root, bg="orange")
   main_frame.pack(pady=10)
 
   gameModel = BlackjackGameModel(main_frame, num_decks, num_players, user_seat_no, starting_money)
 
-  bet_frame = tk.Frame(canvas, bg="purple")
+  bet_frame = tk.Frame(root, bg="purple")
   bet_frame.pack(side=tk.BOTTOM, pady=10)
 
   bet_label = tk.Label(bet_frame, text="Bet: ", font=("Helvetica", 14))
@@ -734,7 +727,7 @@ if __name__ == "__main__":
   play_button = tk.Button(bet_frame, text="Play (Submit Bet)", font=("Helvetica", 14), command=gameModel.reset_table)
   play_button.grid(row=0,column=2)
   
-  command_frame = tk.Frame(canvas, bg="gray")
+  command_frame = tk.Frame(root, bg="gray")
   command_frame.pack(side=tk.BOTTOM)
   
   hit_button = tk.Button(command_frame, text="Hit", font=("Helvetica", 14), state="disabled", command=gameModel.hit_command)
@@ -748,5 +741,5 @@ if __name__ == "__main__":
 
   stand_button = tk.Button(command_frame, text="Stand", font=("Helvetica", 14), state="disabled", command=gameModel.stand_command)
   stand_button.grid(row=0, column=3,padx=10)
-  
+
   root.mainloop()
