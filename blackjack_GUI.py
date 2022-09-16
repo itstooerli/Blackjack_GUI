@@ -4,8 +4,30 @@ import random
 import math
 import copy
 from enum import Enum
-import sys
-# import blackjack_settings
+
+class MainApplication(tk.Tk):
+  def __init__(self):
+    # tk.Tk.__init__(self)
+
+    self.num_decks = 6
+    self.players = 3
+    self.user_seat_no = 1
+    self.starting_money = 1000
+
+    self.define_settings()
+    tk.Tk.__init__(self)
+    self.title('Blackjack')
+  
+  def define_settings(self):
+    settings_window = tk.Tk()
+    settings_window.title("abc")
+    label_settings_title = tk.Label(text="Initialize Settings...")
+    label_settings_title.grid(row=0,column=0,columnspan=3)
+    settings_window.mainloop()
+    
+def main():
+  app = MainApplication()
+  app.mainloop()
 
 class BlackjackGameModel:
   def __init__(self, main_frame, num_decks, num_players, user_seat_no, starting_money):
@@ -685,11 +707,13 @@ def on_exit():
   ## tkinter will start a mini-loop and won't exit the program even if the user
   ## has closed it. This solution allows the mini-loop to break, system to quit,
   ## then the objects to be destroyed
+  ## Proving SO: https://stackoverflow.com/questions/56175296/unable-to-exit-tkinter-app-when-using-wait-variable
   gameModel.stand_command()
   root.quit()
 
-
 if __name__ == "__main__":
+  main()
+
   ## Set Default Values
   num_decks = 6
   num_players = 3
