@@ -134,12 +134,12 @@ class BlackjackGameModel:
     card_img_global = ImageTk.PhotoImage(card_img_resized)
     return card_img_global
   
-  def setup_table(self, main_frame, num_players, player_seat_no, player_money):
+  def setup_table(self, main_frame, num_players, user_seat_no, player_money):
     """ Creates an array of Seats that will represent the state of each player
     
     Input: main_frame:      tk.Frame to represent table
            num_players:     Number of Seats to create at table
-           player_seat_no:  Position whwere use is at table (Index-1)
+           user_seat_no:  Position whwere use is at table (Index-1)
            player_money:    Integer for starting money given to user
     Output: Array of Seats
     """
@@ -152,16 +152,18 @@ class BlackjackGameModel:
     # Create table as list of Seats
     table = []
     for player_no in range(num_players):
-      if player_no == player_seat_no - 1:
+      if player_no == user_seat_no - 1:
         ## Initialize the player (Index 1)
         table.append(self.Seat(SeatType.PLAYER, player_money))
         table[player_no].base_bet = min(100, -(-player_money // 10)) ## 100 or Round-up Integer Divsion
+        frame_text = f'You: ${table[player_no].money}'
       else:
         ## Create AI Seats
         table.append(self.Seat(SeatType.AI))
+        frame_text = f'Player {player_no + 1}: ${table[player_no].money}'
   
       ## Create a frame for this player
-      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}: ${table[player_no].money}', bd=0, font=("Helvetica", 10), bg='#FFC06E')
+      frame = tk.LabelFrame(table_frame, text=frame_text, bd=0, font=("Helvetica", 10), bg='#FFC06E')
       frame.grid(row=0, column=player_no, padx=20)
       table[player_no].frame = frame
   
@@ -583,6 +585,7 @@ class BlackjackGameModel:
           current_hand = seat.hand[completed_hands]
 
           if current_hand.status == HandStatus.ACTIVE:
+            # current_hand.frame.config(bg='yellow')
             current_hand.status_label.config(text=f'ACTIVE {current_hand.score}, BET: {current_hand.bet}')
             ## Activate relevant buttons
             self.hit_button.config(state="active")
@@ -677,8 +680,13 @@ class BlackjackGameModel:
         hand.status_label.config(text=payout_text)
         hand.status_label.grid(columnspan=len(hand.cards))
 
+      frame_text = f'Player {index + 1}: ${seat.money}'
+
+      if index == self.user_seat_no - 1:
+        frame_text = f'You: ${seat.money}'
+
       if index < len(self.table) - 1:
-        seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
+        seat.frame.config(text=f'{frame_text}')
       
       if seat.type == SeatType.PLAYER and seat.money <= 0:
         ## TODO: Figure out what to do if out of money

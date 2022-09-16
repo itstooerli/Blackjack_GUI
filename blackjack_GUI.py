@@ -33,6 +33,7 @@ class MainApplication(tk.Tk):
         ## xx ---BET_FRAME---- xx
         ## xx ---------------- xx
 
+        # main_frame = tk.Frame(self, bg="#86B049") # Chelsea Cucumber (Green) until play starts
         main_frame = tk.Frame(self, bg="#BDD99E") # Madang (Green)
         main_frame.pack(pady=10)
 
