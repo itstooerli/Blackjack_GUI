@@ -7,6 +7,7 @@ from enum import Enum
 
 ## TODO: Clean up code, e.g. restructure and add comments
 ## TODO: Change all colors to green
+## TODO: Rewrite README
 ## TODO: Figure out what to do if no more money
 ## TODO: Implement recommended action for basic strategy practice
 
