@@ -78,6 +78,11 @@ class MainApplication(tk.Tk):
                                  state="disabled")
         stand_button.grid(row=0, column=3, padx=10)
 
+        recommend_frame = tk.Frame(self)
+        recommend_frame.pack(side=tk.BOTTOM, pady=10)
+        recommend_toggle = tk.Button(recommend_frame, text="Recommend Basic Strategy: OFF")
+        recommend_toggle.grid(row=0,column=0)
+
         self.gameModel = bj.BlackjackGameModel(
             main_frame, bet_label, bet_value_var, bet_input, play_button, hit_button,
             double_down_button, split_button, stand_button, self.num_decks,
