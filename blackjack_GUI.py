@@ -7,22 +7,131 @@ from enum import Enum
 
 class MainApplication(tk.Tk):
   def __init__(self):
-    # tk.Tk.__init__(self)
-
     self.num_decks = 6
-    self.players = 3
+    self.num_players = 3
     self.user_seat_no = 1
     self.starting_money = 1000
-
     self.define_settings()
+
     tk.Tk.__init__(self)
     self.title('Blackjack')
   
   def define_settings(self):
     settings_window = tk.Tk()
-    settings_window.title("abc")
-    label_settings_title = tk.Label(text="Initialize Settings...")
+    settings_window.title("Blackjack Settings")
+    label_settings_title = tk.Label(text="Initialize Settings...\n Must click Submit to change setting.")
     label_settings_title.grid(row=0,column=0,columnspan=3)
+    
+    entry_width = 10 ## Width of each entry space in settings window
+
+    ## Setting number of 52-card decks to use
+    min_num_decks = 1
+    max_num_decks = 10
+
+    num_decks_var = tk.IntVar()
+    num_decks_var.set(self.num_decks)
+    
+    def set_num_decks():
+      try:
+        input_num_decks = num_decks_var.get()
+        if min_num_decks <= input_num_decks <= max_num_decks:
+          self.num_decks = input_num_decks
+        
+        num_decks_var.set(self.num_decks)
+      except:
+        num_decks_var.set(self.num_decks)
+
+    label_num_decks = tk.Label(text=f"Number of decks [{min_num_decks}, {max_num_decks}]: ")
+    entry_num_decks = tk.Entry(width=entry_width, textvariable=num_decks_var)
+    button_num_decks = tk.Button(text="Submit",command=set_num_decks)
+    label_num_decks.grid(row=1,column=0)
+    entry_num_decks.grid(row=1,column=1)
+    button_num_decks.grid(row=1,column=2)
+
+    ## Setting number of players at table
+    min_num_players = 1
+    max_num_players = 6
+
+    num_players_var = tk.IntVar()
+    num_players_var.set(self.num_players)
+
+    def set_num_players():
+      try:
+        input_num_players = num_players_var.get()
+        if min_num_players <= input_num_players <= max_num_players:
+          self.num_players = input_num_players
+
+        num_players_var.set(self.num_players)
+
+        if self.num_players < self.user_seat_no:
+          ## If the number of players was changed to a value less
+          ## than the user's current position, reset position to 1
+          self.user_seat_no = 1
+          user_seat_no_var.set(self.user_seat_no)
+
+      except:
+        num_players_var.set(self.num_players)
+
+    label_num_players = tk.Label(text=f"Number of players (player + computer) [{min_num_players}, {max_num_players}]: ")
+    entry_num_players = tk.Entry(width=entry_width, textvariable=num_players_var)
+    button_num_players = tk.Button(text="Submit",command=set_num_players)
+    label_num_players.grid(row=2,column=0)
+    entry_num_players.grid(row=2,column=1)
+    button_num_players.grid(row=2,column=2)
+
+    ## Setting position of player (1-indexed)
+    min_user_seat_no = 1
+
+    user_seat_no_var = tk.IntVar()
+    user_seat_no_var.set(self.user_seat_no)
+
+    def set_user_seat_no():
+      try:
+        input_seat_no = user_seat_no_var.get()
+        if min_user_seat_no <= input_seat_no <= self.num_players:
+          self.user_seat_no = input_seat_no
+    
+        user_seat_no_var.set(self.user_seat_no)
+      except:
+        user_seat_no_var.set(self.user_seat_no)
+
+    label_seat_no = tk.Label(text=f"Player's seat number [{min_user_seat_no}, number of players]: ")
+    entry_seat_no = tk.Entry(width=entry_width, textvariable=user_seat_no_var)
+    button_seat_no = tk.Button(text="Submit",command=set_user_seat_no)
+    label_seat_no.grid(row=3,column=0)
+    entry_seat_no.grid(row=3,column=1)
+    button_seat_no.grid(row=3,column=2)
+
+    ## Setting starting money for user
+    min_starting_money = 1
+    max_starting_money = 1000000000
+
+    starting_money_var = tk.IntVar()
+    starting_money_var.set(self.starting_money)
+
+    def set_starting_money():
+      try:
+        input_starting_money = starting_money_var.get()
+        if min_starting_money <= input_starting_money <= max_starting_money:
+          self.starting_money = input_starting_money
+    
+        starting_money_var.set(self.starting_money)
+      except:
+        starting_money_var.set(self.starting_money)
+
+    label_starting_money = tk.Label(text="Player's starting money [1,1000000000]: ")
+    entry_starting_money = tk.Entry(width=entry_width, textvariable=starting_money_var)
+    button_starting_money = tk.Button(text="Submit",command=set_starting_money)
+    label_starting_money.grid(row=4,column=0)
+    entry_starting_money.grid(row=4,column=1)
+    button_starting_money.grid(row=4,column=2)
+
+    def start_game():
+      settings_window.destroy()
+
+    button_start_game = tk.Button(text="Start Game",height=2,command=start_game)
+    button_start_game.grid(row=5, columnspan=3)
+
     settings_window.mainloop()
     
 def main():
@@ -617,7 +726,7 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
   num_players_var.set(num_players)
   
   seat_no_var = tk.StringVar()
-  seat_no_var.set(player_seat_no)
+  seat_no_var.set(user_seat_no)
   
   starting_money_var = tk.StringVar()
   starting_money_var.set(starting_money)
@@ -645,15 +754,15 @@ def define_settings(num_decks, num_players, player_seat_no, starting_money):
       num_players_var.set(num_players)
   
   def set_player_seat_no():
-    global player_seat_no
+    global user_seat_no
     try:
       input_seat_no = int(float(seat_no_var.get()))
       if 0 < input_seat_no < num_players + 1:
-        player_seat_no = input_seat_no
+        user_seat_no = input_seat_no
   
-      seat_no_var.set(player_seat_no)
+      seat_no_var.set(user_seat_no)
     except:
-      seat_no_var.set(player_seat_no)
+      seat_no_var.set(user_seat_no)
   
   def set_starting_money():
     global starting_money
