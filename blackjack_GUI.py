@@ -14,7 +14,9 @@ class MainApplication(tk.Tk):
         tk.Tk.__init__(self)
         self.title('Blackjack')
         self.geometry(f"{700 + (self.num_players-3)*200}x500")
-        self.configure(background="green")
+        # self.configure(background="green")
+        self.configure(background="#86B049") # Chelsea Cucumber (Green)
+        # self.configure(background="#476930") # Deli (Green)
 
         try:
             self.state('zoomed')
@@ -31,7 +33,7 @@ class MainApplication(tk.Tk):
         ## xx ---BET_FRAME---- xx
         ## xx ---------------- xx
 
-        main_frame = tk.Frame(self, bg="#BDD99E")
+        main_frame = tk.Frame(self, bg="#BDD99E") # Madang (Green)
         main_frame.pack(pady=10)
 
         bet_frame = tk.Frame(self, bg="purple")
@@ -90,9 +92,9 @@ class MainApplication(tk.Tk):
 
     def define_settings(self):
         """ Create window to allow user to change primary settings variables"""
-        
         ## Initialize settings window
         settings_window = tk.Tk()
+        settings_window.eval('tk::PlaceWindow . center')
         settings_window.title("Blackjack Settings")
         label_settings_title = tk.Label(
             text="Initialize Settings...\n Must click Submit to change setting."
