@@ -26,27 +26,28 @@ class BlackjackGameModel:
                num_players,
                user_seat_no,
                starting_money):
-    self.main_frame = main_frame
-    self.bet_value_var = bet_value_var
-    self.bet_input = bet_input
-    self.play_button = play_button
-    self.hit_button = hit_button
-    self.double_down_button = double_down_button
-    self.split_button = split_button
-    self.stand_button = stand_button
-    self.base_deck = self.create_deck(num_decks)
-    self.user_seat_no = user_seat_no
-    self.table = self.setup_table(self.main_frame, num_players, user_seat_no, starting_money)
-    self.curr_deck = []
-    self.reshuffle_cutoff = 1
-    self.player_standing = tk.BooleanVar()
-    self.default_image = self.resize_card(f'cards/default.png')
-    self.blackjack_payout_factor = 1.5
-    self.starting_money = starting_money
+    self.main_frame = main_frame                        # Frame that holds the dealer and player cards
+    self.bet_value_var = bet_value_var                  # User input variable holding user bet value
+    self.bet_input = bet_input                          # Tk input for user to type user bet value
+    self.play_button = play_button                      # Tk button to begin play
+    self.hit_button = hit_button                        # Tk button to hit
+    self.double_down_button = double_down_button        # Tk button to double down
+    self.split_button = split_button                    # Tk button to split
+    self.stand_button = stand_button                    # Tk button to stand
+    self.base_deck = self.create_deck(num_decks)        # Array that holds the Cards used for play
+    self.user_seat_no = user_seat_no                    # Position of player at table
+    self.table = self.setup_table(self.main_frame, num_players, user_seat_no, starting_money) # Array that holds Seats
+    self.curr_deck = []                                 # Deck that game is currently using (copy of base_deck to allow removing cards)
+    self.reshuffle_cutoff = 1                           # Maximum value for length of curr_deck when it should re-copy from base_deck
+    self.player_standing = tk.BooleanVar()              # Tk boolean used to wait for player input
+    self.default_image = self.resize_card(f'cards/default.png') # Image back-of-card to hide dealer card
+    self.blackjack_payout_factor = 1.5                  # The multiplicative factor for how much players should receive upon blackjack
+    self.starting_money = starting_money                # The starting money for the user
     self.bet_value_var.set(self.table[self.user_seat_no - 1].base_bet)
-    self.active_user_hand = None ## State variable for which hand the user is currently acting on
+    self.active_user_hand = None                        # State variable for which hand the user is currently acting on
 
   class Card:
+    """Class used to represent a playing card (suit, number, value in game, image)"""
     def __init__(self, suit=None, card=None, value=None, image=None):
       self.suit = suit    # Stores the suit of the card, e.g. Clubs
       self.card = card    # Stores the number of the card, e.g. K or 3
@@ -63,6 +64,8 @@ class BlackjackGameModel:
       return copyobj
   
   class Hand:
+    """Class used to represent one set of cards given to a user"""
+
     def __init__(self, cards, score, num_aces, bet, frame=None, status_label=None):
       self.cards = cards        # Stores an array of Cards
       self.score = score        # Stores the cumulative score
@@ -73,6 +76,8 @@ class BlackjackGameModel:
       self.status_label = status_label  # Stores the status widget to be updated for this hand
 
   class Seat:
+    """Class used to represent one player at the table"""
+
     def __init__(self, type, money=1000000, base_bet=100, frame=None):   
       self.type = type          # Stores the type of seat this is
       self.hand = []            # Stores the seat's hand as list of Hands
@@ -81,6 +86,11 @@ class BlackjackGameModel:
       self.frame = frame        # Stores the frame for this Seat
   
   def create_deck(self, num_decks):
+    """ Creates an array of Card variables given the number of decks to play with
+    Input: Integer value for number of decks to play with
+    Output: Array of Cards
+    """
+
     ## These values may be unique to blackjack
     suit_values = {"Spades":"\u2664", "Hearts":"\u2661", "Clubs":"\u2667", "Diamonds":"\u2662"}
     card_values = {"A":11, "2":2, "3":3, "4":4, "5":5, "6":6, "7":7, "8":8, "9":9, "10":10, "J":10, "Q":10, "K":10}
@@ -93,15 +103,18 @@ class BlackjackGameModel:
     for suit in suits:
       for card in cards:
         card_image = self.resize_card(f'cards/{card}_of_{suit}.png')
-        for i in range(num_decks):
+        for _ in range(num_decks):
           deck.append(self.Card(suit_values[suit], card, card_values[card], card_image))
     return deck
 
   def resize_card(self, card):
+    """ Resize the card to be smaller
+    Input: Card class variable for card
+    Output: ImageTk.PhotoImage variable for card 
+    """
     card_img = Image.open(card)
     card_img_resized = card_img.resize((50, 73))
   
-    global card_img_global
     card_img_global = ImageTk.PhotoImage(card_img_resized)
     return card_img_global
   
@@ -538,12 +551,14 @@ class BlackjackGameModel:
 
   def hit_command(self):
     self.deal_new_card(self.active_user_hand)
-  
+    self.double_down_button.config(state="disabled")
+
     if self.active_user_hand.score > 21:
       self.stand_command()
 
   def double_down_command(self):
     self.double_down(self.active_user_hand)
+    self.double_down_button.config(state="disabled")
     self.stand_command()
 
   def double_down(self, hand):

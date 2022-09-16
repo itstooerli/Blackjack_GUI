@@ -1,15 +1,14 @@
 import tkinter as tk
 import blackjack_game_model as bj
 
-
 class MainApplication(tk.Tk):
     def __init__(self):
         ## Define starting variables w/ user input
-        self.num_decks = 6
-        self.num_players = 3
-        self.user_seat_no = 1
-        self.starting_money = 1000
-        self.define_settings()
+        self.num_decks = 6            ## Number of 52-card decks to play with
+        self.num_players = 3          ## Number of players (user + computer) at table
+        self.user_seat_no = 1         ## Position of user amongst computer players
+        self.starting_money = 1000    ## Money the user starts with
+        self.define_settings()        ## Allow user to change these variables
 
         ## Initialize Main Window
         tk.Tk.__init__(self)
@@ -24,8 +23,9 @@ class MainApplication(tk.Tk):
 
         ## Initialize main frame
         ## xx ---------------- xx
-        ## xx -----DEALER----- xx
-        ## xx -----TABLE------ xx
+        ## xx |--MAIN_FRAME--| xx
+        ## xx |----DEALER----| xx
+        ## xx |----TABLE-----| xx
         ## xx ---------------- xx
         ## xx -COMMAND_FRAME-- xx
         ## xx ---BET_FRAME---- xx
@@ -89,6 +89,9 @@ class MainApplication(tk.Tk):
         self.protocol('WM_DELETE_WINDOW', self.on_exit)
 
     def define_settings(self):
+        """ Create window to allow user to change primary settings variables"""
+        
+        ## Initialize settings window
         settings_window = tk.Tk()
         settings_window.title("Blackjack Settings")
         label_settings_title = tk.Label(
