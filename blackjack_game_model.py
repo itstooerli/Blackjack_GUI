@@ -6,11 +6,27 @@ import copy
 from enum import Enum
 
 ## TODO: Clean up code, e.g. restructure and add comments
+## TODO: Make cards bigger (but then limit number of splits)
+## TODO: Make table & dealer more spaced out
 ## TODO: Change all colors to green
 ## TODO: Rewrite README
 ## TODO: Merge changes back to main
 ## TODO: Figure out what to do if no more money
 ## TODO: Implement recommended action for basic strategy practice
+
+class SeatType(Enum):
+  PLAYER = 0
+  AI = 1
+  DEALER = 2
+
+class HandStatus(Enum):
+  ACTIVE = 0
+  BLACKJACK = 1
+  WINNER = 2
+  TIE = 3
+  LOSER = 4
+  DEALER = 5
+  WAITING = 6
 
 class BlackjackGameModel:
   def __init__(self, 
@@ -47,7 +63,7 @@ class BlackjackGameModel:
     self.active_user_hand = None                        # State variable for which hand the user is currently acting on
 
   class Card:
-    """Class used to represent a playing card (suit, number, value in game, image)"""
+    """ Class used to represent a playing card (suit, number, value in game, image)"""
     def __init__(self, suit=None, card=None, value=None, image=None):
       self.suit = suit    # Stores the suit of the card, e.g. Clubs
       self.card = card    # Stores the number of the card, e.g. K or 3
@@ -64,7 +80,7 @@ class BlackjackGameModel:
       return copyobj
   
   class Hand:
-    """Class used to represent one set of cards given to a user"""
+    """ Class used to represent one set of cards given to a user"""
 
     def __init__(self, cards, score, num_aces, bet, frame=None, status_label=None):
       self.cards = cards        # Stores an array of Cards
@@ -76,7 +92,7 @@ class BlackjackGameModel:
       self.status_label = status_label  # Stores the status widget to be updated for this hand
 
   class Seat:
-    """Class used to represent one player at the table"""
+    """ Class used to represent one player at the table"""
 
     def __init__(self, type, money=1000000, base_bet=100, frame=None):   
       self.type = type          # Stores the type of seat this is
@@ -90,7 +106,6 @@ class BlackjackGameModel:
     Input: Integer value for number of decks to play with
     Output: Array of Cards
     """
-
     ## These values may be unique to blackjack
     suit_values = {"Spades":"\u2664", "Hearts":"\u2661", "Clubs":"\u2667", "Diamonds":"\u2662"}
     card_values = {"A":11, "2":2, "3":3, "4":4, "5":5, "6":6, "7":7, "8":8, "9":9, "10":10, "J":10, "Q":10, "K":10}
@@ -119,6 +134,14 @@ class BlackjackGameModel:
     return card_img_global
   
   def setup_table(self, main_frame, num_players, player_seat_no, player_money):
+    """ Creates an array of Seats that will represent the state of each player
+    
+    Input: main_frame:      tk.Frame to represent table
+           num_players:     Number of Seats to create at table
+           player_seat_no:  Position whwere use is at table (Index-1)
+           player_money:    Integer for starting money given to user
+    Output: Array of Seats
+    """
     ## Create frame for dealer above frame for rest of table
     dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, bg="blue")
     dealer_frame.grid(row=0, column=0)
@@ -148,6 +171,7 @@ class BlackjackGameModel:
     return table
 
   def reset_table(self):
+    """ Resets the table by destroying all relevant widgets from previous round"""
     self.play_button.config(state="disabled")
     for seat in self.table:
       for widget in seat.frame.winfo_children():
@@ -156,16 +180,23 @@ class BlackjackGameModel:
     self.play_game()
 
   def shuffle_deck(self):
-    # curr_deck = copy.deepcopy(self.base_deck)
+    """ Create a new copy of the base_deck and assign to curr_deck with a cutoff for when to copy again"""
+    # curr_deck = copy.deepcopy(self.base_deck) # NOTE: ImageTk cannot be copied using deepcopy
     self.curr_deck = [card.copy() for card in self.base_deck]
     self.reshuffle_cutoff = random.randrange(math.floor(len(self.base_deck) * 0.25), math.floor(len(self.base_deck) * 0.5))
 
   def display_card(self, hand, new_card):
-    ## Assumed display after cards array increased
+    """ Creates a new label for the given hand's frame to represent card
+    
+    Input: hand:      Hand class variable that provides the frame for the given hand
+           new_card:  Card class variable that requires an image for the frame
+    NOTE: Assumed display after cards array has already been increased by new card
+    """
     label = tk.Label(hand.frame, image=new_card.image)
     label.grid(row=0, column=(len(hand.cards) - 1))
   
   def deal_cards(self):
+    """ Deal each player 2 cards at the beginning of play and updates labels accordingly"""
     # Initialize each seat's first hand
     for seat in self.table:
       hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
@@ -208,7 +239,10 @@ class BlackjackGameModel:
     self.table[-1].hand[0].status_label.config(text=f'Total: {self.table[-1].hand[0].cards[0].value}')
 
   def deal_new_card(self, hand):
-    # Deal a new card to the provided hand
+    """ Deal a new card to the provided hand and update the label accordingly
+    
+    Input: hand:  Hand class variable that will be given a new card
+    """
     new_card = random.choice(self.curr_deck)
     hand.cards.append(new_card)
     hand.score += new_card.value
@@ -231,6 +265,12 @@ class BlackjackGameModel:
     hand.status_label.config(text=f'ACTIVE {hand.score}, BET: {hand.bet}')
 
   def play_AI_hand_naive_strategy(self, hand):
+    """ Play given hand with naive strategy
+    
+    Naive strategy is hitting until the total score is 17 or greater
+
+    Input:  hand:   Hand variable that will be updated with new card
+    """
     while hand.score < 17:
       self.deal_new_card(hand)
 
@@ -242,28 +282,32 @@ class BlackjackGameModel:
       hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
 
   def play_AI_hand_basic_strategy(self, seat, hand):
-    """
-    # Defining Basic Strategy
-    # - Always split As and 8s
-    # - Never split 5s and 10s
-    # - Split 2s and 3s against Dealer 2-7
-    # - Split 4s against Dealer 5-6
-    # - Split 6s against Dealer 2-6
-    # - Split 7s against Dealer 2-7
-    # - Split 9s against Dealer 2-6 or 8-9
-    # - Double hard 9 against Dealer 3-6
-    # - Double hard 10 against Dealer 2-9
-    # - Double hard 11 against Dealer 2-K 
-    # - Double soft 13 or 14 against Dealer 5-6
-    # - Double soft 15 or 16 against Dealer 4-6
-    # - Double soft 17 or 18 against Dealer 3-6
-    # - Always hit hard 11 or less
-    # - Stand on hard 12 against dealer 4-6, otherwise hit
-    # - Stand on hard 13-16 against dealer 2-6, otherwise hit
-    # - Always stand on hard 17 or more
-    # - Always hit soft 17 or less
-    # - Stand on soft 18 except hit against Dealer 9-A 
-    # - Always stand on soft 19 or more
+    """ Play given hand with basic strategy
+
+    Defining Basic Strategy
+    - Always split As and 8s
+    - Never split 5s and 10s
+    - Split 2s and 3s against Dealer 2-7
+    - Split 4s against Dealer 5-6
+    - Split 6s against Dealer 2-6
+    - Split 7s against Dealer 2-7
+    - Split 9s against Dealer 2-6 or 8-9
+    - Double hard 9 against Dealer 3-6
+    - Double hard 10 against Dealer 2-9
+    - Double hard 11 against Dealer 2-K 
+    - Double soft 13 or 14 against Dealer 5-6
+    - Double soft 15 or 16 against Dealer 4-6
+    - Double soft 17 or 18 against Dealer 3-6
+    - Always hit hard 11 or less
+    - Stand on hard 12 against dealer 4-6, otherwise hit
+    - Stand on hard 13-16 against dealer 2-6, otherwise hit
+    - Always stand on hard 17 or more
+    - Always hit soft 17 or less
+    - Stand on soft 18 except hit against Dealer 9-A 
+    - Always stand on soft 19 or more
+    
+    Input:    seat:   Seat class variable that will be updated in the event of a split
+              hand:   Hand class variable that will be updated when new cards are given
     """
     
     dealer_shown_card = self.table[-1].hand[0].cards[0]
@@ -308,7 +352,7 @@ class BlackjackGameModel:
           else:  # 10, J, Q, K
             pass
   
-        # Assess Double
+        # Assess Double Down
         if hand.num_aces == 0:
           if hand.score == 9:
             if dealer_shown_card.value in (3,4,5,6):  
@@ -347,7 +391,8 @@ class BlackjackGameModel:
               hand.status = HandStatus.WAITING
               hand.status_label.config(text=f'STAND {hand.score}, BET: {hand.bet}')
               break
-    
+      
+      ## Assess all other hit/stand scenarios
       if hand.num_aces == 0:
         if hand.score <= 11:
           self.deal_new_card(hand)
@@ -387,8 +432,88 @@ class BlackjackGameModel:
       hand.status = HandStatus.LOSER
       hand.status_label.config(text=f'BUST {hand.score}, BET: {hand.bet}')
 
+  def hit_command(self):
+    """ Command for hit button: Deal new card to user"""
+    self.deal_new_card(self.active_user_hand)
+    self.double_down_button.config(state="disabled")
+
+    if self.active_user_hand.score > 21:
+      self.stand_command()
+
+  def double_down_command(self):
+    """ Command for double down button: Deal new card to user, double bet, and stand"""
+    self.double_down(self.active_user_hand)
+    self.double_down_button.config(state="disabled")
+    self.stand_command()
+
+  def double_down(self, hand):
+    """ Double down to given Hand class variable: Deal new card and double bet"""
+    self.deal_new_card(hand)
+    hand.bet *= 2
+
+  def split_command(self):
+    """ Command for split button: Split the current active hand"""
+
+    self.split_button.config(state="disabled")
+    seat = self.table[self.user_seat_no - 1]
+    self.split_hand(seat, self.active_user_hand)
+
+    if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card) or (self.active_user_hand.cards[0].value == self.active_user_hand.cards[1].value):
+      self.split_button.config(state="active")
+
+  def split_hand(self, seat, hand):
+    """ Split the given Hand class variable and add new Hand class variable to given Seat class variable
+    
+    Input:  seat:   Seat class variable for which to extend with new Hand class variable
+            hand:   Hand class variable for which to modify
+    """
+    # The split card is the second card in the given hand
+    split_card = hand.cards[1]
+    
+    # Remove the split card from the current hand
+    hand.score -= split_card.value
+    hand.cards.pop()
+    hand.frame.winfo_children()[-1].destroy()
+
+    # Create new hand
+    if split_card.card == "A":
+      split_card.value = 11
+      hand.num_aces -= 1
+
+    hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
+    hand_frame.grid(row=len(seat.hand),column=0)
+    status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
+    status_label.grid(row=1,column=0,columnspan=2)
+    seat.hand.append(self.Hand([split_card], split_card.value, hand.num_aces, seat.base_bet, hand_frame, status_label))
+    self.display_card(seat.hand[-1], split_card)
+
+    # Deal both hands a new card
+    self.deal_new_card(hand)
+    self.deal_new_card(seat.hand[-1])
+    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
+
+  def stand_command(self):
+    """ Command for stand_button or if player has double down or busted
+    
+    This sets the active variable that the main_loop is waiting on to continue actions: self.player_standing
+    """
+    self.player_standing.set(not self.player_standing)
 
   def play_game(self):
+    """ This is the primary game loop for blackjack 
+    
+    Order of Play:
+    - Submit the bet from the user
+    - Check if current deck needs to be reshuffled
+    - Deal cards to all players at table
+    - Check if seats have blackjack
+    - Play table hands
+    - Play dealer hand if applicable
+    - Determine payouts
+    - Reactivate Bet/Play button for next round
+    """
+    
+    # Update the user's bet
     self.bet_input.config(state="disabled")
     try:
       user_bet_val = self.bet_value_var.get()
@@ -402,6 +527,7 @@ class BlackjackGameModel:
 
     self.bet_value_var.set(self.table[self.user_seat_no - 1].base_bet)
     
+    # Shuffle deck if necessary and deal cards
     if len(self.curr_deck) < self.reshuffle_cutoff:
       self.shuffle_deck()
   
@@ -428,7 +554,7 @@ class BlackjackGameModel:
           seat.hand[0].status = HandStatus.BLACKJACK
           seat.hand[0].status_label.config(text=f'BLACKJACK {seat.hand[0].score}, BET: {seat.hand[0].bet}')
     
-    for index, seat in enumerate(self.table):
+    for seat in self.table:
       completed_hands = 0
       if seat.type == SeatType.AI:
         while completed_hands < len(seat.hand):
@@ -548,69 +674,3 @@ class BlackjackGameModel:
     ## Config Buttons
     self.play_button.config(state="normal")
     self.bet_input.config(state="normal")
-
-  def hit_command(self):
-    self.deal_new_card(self.active_user_hand)
-    self.double_down_button.config(state="disabled")
-
-    if self.active_user_hand.score > 21:
-      self.stand_command()
-
-  def double_down_command(self):
-    self.double_down(self.active_user_hand)
-    self.double_down_button.config(state="disabled")
-    self.stand_command()
-
-  def double_down(self, hand):
-    self.deal_new_card(hand)
-    hand.bet *= 2
-
-  def split_command(self):
-    self.split_button.config(state="disabled")
-    seat = self.table[self.user_seat_no - 1]
-    self.split_hand(seat, self.active_user_hand)
-
-    if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card) or (self.active_user_hand.cards[0].value == self.active_user_hand.cards[1].value):
-      self.split_button.config(state="active")
-
-  def split_hand(self, seat, hand):
-    split_card = hand.cards[1]
-    
-    # Remove the split card from the current hand
-    hand.score -= split_card.value
-    hand.cards.pop()
-    hand.frame.winfo_children()[-1].destroy()
-
-    # Create new hand
-    if split_card.card == "A":
-      split_card.value = 11
-      hand.num_aces -= 1
-
-    hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
-    hand_frame.grid(row=len(seat.hand),column=0)
-    status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
-    status_label.grid(row=1,column=0,columnspan=2)
-    seat.hand.append(self.Hand([split_card], split_card.value, hand.num_aces, seat.base_bet, hand_frame, status_label))
-    self.display_card(seat.hand[-1], split_card)
-
-    # Deal both hands a new card
-    self.deal_new_card(hand)
-    self.deal_new_card(seat.hand[-1])
-    seat.hand[-1].status_label.config(text=f'WAITING {seat.hand[-1].score}, BET: {seat.hand[-1].bet}')
-
-  def stand_command(self):
-    self.player_standing.set(not self.player_standing)
-
-class SeatType(Enum):
-  PLAYER = 0
-  AI = 1
-  DEALER = 2
-
-class HandStatus(Enum):
-  ACTIVE = 0
-  BLACKJACK = 1
-  WINNER = 2
-  TIE = 3
-  LOSER = 4
-  DEALER = 5
-  WAITING = 6
