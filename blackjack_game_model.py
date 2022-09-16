@@ -5,7 +5,6 @@ import math
 import copy
 from enum import Enum
 
-## TODO: Clean up code, e.g. restructure and add comments
 ## TODO: Make cards bigger (but then limit number of splits)
 ## TODO: Make table & dealer more spaced out
 ## TODO: Change all colors to green
@@ -128,8 +127,9 @@ class BlackjackGameModel:
     Output: ImageTk.PhotoImage variable for card 
     """
     card_img = Image.open(card)
-    card_img_resized = card_img.resize((50, 73))
-  
+    # card_img_resized = card_img.resize((50, 73))
+    # card_img_resized = card_img.resize((67, 97))
+    card_img_resized = card_img.resize((71, 104))
     card_img_global = ImageTk.PhotoImage(card_img_resized)
     return card_img_global
   
