@@ -131,7 +131,8 @@ class BlackjackGameModel:
     card_img = Image.open(card)
     # card_img_resized = card_img.resize((50, 73))
     # card_img_resized = card_img.resize((67, 97))
-    card_img_resized = card_img.resize((71, 104))
+    # card_img_resized = card_img.resize((71, 104))
+    card_img_resized = card_img.resize((84, 121))
     card_img_global = ImageTk.PhotoImage(card_img_resized)
     return card_img_global
   
@@ -165,7 +166,7 @@ class BlackjackGameModel:
   
       ## Create a frame for this player
       frame = tk.LabelFrame(table_frame, text=frame_text, bd=0, font=("Helvetica", 10), bg='#FFC06E')
-      frame.grid(row=0, column=player_no, padx=20)
+      frame.grid(row=0, column=player_no, padx=10)
       table[player_no].frame = frame
   
     ## The last seat is always the dealer

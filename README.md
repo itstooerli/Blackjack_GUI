@@ -5,16 +5,18 @@ Functionality includes bets, splits, double downs, and up to 6 other computer se
 
 ## Instructions
 ### Running the program
-* This program requires the use of Python module Pillow.
+* This program requires the use of Python and the Python module Pillow.
   * > `py -m pip install Pillow`
   * Alternative is to run on Replit: [Blackjack GUI Replit](https://replit.com/@itstooerli/BlackjackGUI?v=1)
 * Run the blackjack_GUI.py script
   * Command Line: > `py blackjackGUI.py`
+  * Alternative is to run on Replit: [Blackjack GUI Replit](https://replit.com/@itstooerli/BlackjackGUI?v=1)
 ### Configuring settings
 * You should then see a settings window that allows you set specific parameters for your game.
 ![blackjack_Settings](/images/blackjack_settings.png)
   * Number of decks (default 6): Specify number of 52-card decks to shuffle for this game, minimum=1, maximum=10
   * Number of players (default 3): Specify number of players to play at table, one player will be you the user, the rest will be computers, minimum=1, maximum=6
+    * RECOMMENDATION: Less players will guarantee that all cards will fit on screen. Players are aligned horizontally and new cards are provided horizontally, therefore, cards may begin to fall off screen with 6 players, though very rare.
   * Player's seat number (default 1): Specify where at the table you'd like to sit, 1 being the earliest, the number specified in Number of players being the latest
   * Player's starting money (default 1000): Specifiy number to begin with for player's funds
   * NOTE: You must click __Submit__ to actually change the setting. Otherwise, it will not save your change (and also verify that you submitted an integer)
@@ -25,7 +27,7 @@ Functionality includes bets, splits, double downs, and up to 6 other computer se
 ![command_frames](/images/command_frames.png)
 * When ready, click __Play (Submit Bet)__.
 * You'll now see the table generate and cards dealt to each of the players.
-![blackjack_game](/images/blackjack_game.png)
+![blackjack_game](/images/blackjack_game_updated.png)
 * Your hand(s) will be under the label "You", which also provides the total amount of funds you have left.
 * The computers will automatically play their hands using basic strategy when it is their turn.
 * NOTE: If the dealer has 21, the round will automatically end and payouts will be distributed from that point.
@@ -46,6 +48,7 @@ Functionality includes bets, splits, double downs, and up to 6 other computer se
   * Split: If the player's first two cards are the same denomination/rank (e.g. Queen and Queen, but not Queen and Jack), then they can choose to treat them as two separate hands. The original bet is placed on the first hand and an equal amount is placed on the second hand. Each hand is dealt and extra card and then play begins as normal for each hand. Normally, with a pair of aces, the player is given one card for each ace and no additional action can begin, but this is ignored for this iteration of the game.
   * Stand: Do not ask for another card and stay with current total
   * For more detailed rules, suggested to see [Bicycle Cards Blackjack Rules](https://bicyclecards.com/how-to-play/blackjack/).
+* This game also provides an opportunity to learn basic strategy. There is a __Recommend Basic Strategy__ button that allows you to look at what basic strategy would recommend here. You can turn feature this on or off but clicking the toggle. ![recommendation](/images/recommendation.png)
 * After play is complete, the status label will update with the result of the hand and the net change in funds for the player.
 ![blackjack_result](/images/blackjack_result.png)
 Possible results are
@@ -55,8 +58,9 @@ Possible results are
   * Loser: Player had lower total than dealer or player busted
 * Play continues as from beginning of this subsection Playing the Game
 
-## Next Steps
-* Provide a recommendation system if desired to help users learn basic strategy
+## Possible Next Steps
+* Optimizing sizing of window to allow for truncated views with larger number of players
+* Include other blackjack strategies, include card counting strategies
 
 ## Authors
 Contributors names

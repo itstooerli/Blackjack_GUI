@@ -13,7 +13,7 @@ class MainApplication(tk.Tk):
         ## Initialize Main Window
         tk.Tk.__init__(self)
         self.title('Blackjack')
-        self.geometry(f"{700 + (self.num_players-3)*200}x500")
+        self.geometry(f"{700 + (self.num_players-3)*200}x700")
         # self.configure(background="green")
         self.configure(background="#86B049") # Chelsea Cucumber (Green)
         # self.configure(background="#476930") # Deli (Green)
