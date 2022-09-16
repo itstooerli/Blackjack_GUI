@@ -5,6 +5,11 @@ import math
 import copy
 from enum import Enum
 
+## TODO: Clean up code, e.g. restructure and add comments
+## TODO: Change all colors to green
+## TODO: Figure out what to do if no more money
+## TODO: Implement recommended action for basic strategy practice
+
 class BlackjackGameModel:
   def __init__(self, 
                main_frame,
@@ -369,7 +374,6 @@ class BlackjackGameModel:
 
 
   def play_game(self):
-    ## TODO: Need to define bets
     self.bet_input.config(state="disabled")
     try:
       user_bet_val = self.bet_value_var.get()
@@ -412,7 +416,6 @@ class BlackjackGameModel:
     for index, seat in enumerate(self.table):
       completed_hands = 0
       if seat.type == SeatType.AI:
-        ## TODO: Implement more difficult AI logic
         while completed_hands < len(seat.hand):
           current_hand = seat.hand[completed_hands]
 
