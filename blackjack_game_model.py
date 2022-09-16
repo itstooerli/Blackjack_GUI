@@ -594,7 +594,7 @@ class BlackjackGameModel:
               self.double_down_button.config(state="active")
 
             if len(current_hand.cards) == 2:
-              if (current_hand.cards[0].card == current_hand.cards[1].card) or (current_hand.cards[0].value == current_hand.cards[1].value):
+              if (current_hand.cards[0].card == current_hand.cards[1].card):
                 self.split_button.config(state="active")
             
             self.active_user_hand = current_hand
