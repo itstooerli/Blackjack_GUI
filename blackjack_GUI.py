@@ -31,7 +31,7 @@ class MainApplication(tk.Tk):
         ## xx ---BET_FRAME---- xx
         ## xx ---------------- xx
 
-        main_frame = tk.Frame(self, bg="orange")
+        main_frame = tk.Frame(self, bg="#BDD99E")
         main_frame.pack(pady=10)
 
         bet_frame = tk.Frame(self, bg="purple")

@@ -143,9 +143,9 @@ class BlackjackGameModel:
     Output: Array of Seats
     """
     ## Create frame for dealer above frame for rest of table
-    dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, bg="blue")
-    dealer_frame.grid(row=0, column=0)
-    table_frame = tk.LabelFrame(main_frame, bd=0, bg="yellow")
+    dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, labelanchor="n", font=("Helvetica", 14), bg="#FFC06E")
+    dealer_frame.grid(row=0, column=0, pady=(0,10))
+    table_frame = tk.LabelFrame(main_frame, bd=0, bg="#BDD99E")
     table_frame.grid(row=1, column=0)
     
     # Create table as list of Seats
@@ -160,7 +160,7 @@ class BlackjackGameModel:
         table.append(self.Seat(SeatType.AI))
   
       ## Create a frame for this player
-      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}: ${table[player_no].money}', bd=0, bg='magenta')
+      frame = tk.LabelFrame(table_frame, text=f'Player {player_no + 1}: ${table[player_no].money}', bd=0, font=("Helvetica", 10), bg='#FFC06E')
       frame.grid(row=0, column=player_no, padx=20)
       table[player_no].frame = frame
   
@@ -195,13 +195,22 @@ class BlackjackGameModel:
     label = tk.Label(hand.frame, image=new_card.image)
     label.grid(row=0, column=(len(hand.cards) - 1))
   
+  def create_status_label(self, hand_frame):
+    """Create a tk.Label for given hand_frame
+    
+    Input:    hand_frame:   tk.Frame to which tk.Label will be added
+    Output    status_label: tk.Label added to the tk.Frame providing information about hand
+    """
+    status_label = tk.Label(hand_frame, font=("Helvetica", 10))
+    return status_label
+
   def deal_cards(self):
     """ Deal each player 2 cards at the beginning of play and updates labels accordingly"""
     # Initialize each seat's first hand
     for seat in self.table:
-      hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
+      hand_frame = tk.LabelFrame(seat.frame, bd=0)
       hand_frame.grid(row=0,column=0)
-      status_label = tk.Label(hand_frame)
+      status_label = self.create_status_label(hand_frame)
       status_label.grid(row=1,column=0,columnspan=2)
       seat.hand = [self.Hand([], 0, 0, seat.base_bet, hand_frame, status_label)]
     self.table[-1].hand[0].status = HandStatus.DEALER
@@ -263,6 +272,7 @@ class BlackjackGameModel:
           break
 
     hand.status_label.config(text=f'ACTIVE {hand.score}, BET: {hand.bet}')
+    hand.status_label.grid(columnspan=len(hand.cards))
 
   def play_AI_hand_naive_strategy(self, hand):
     """ Play given hand with naive strategy
@@ -480,9 +490,10 @@ class BlackjackGameModel:
       split_card.value = 11
       hand.num_aces -= 1
 
-    hand_frame = tk.LabelFrame(seat.frame, bd=0, bg='black')
+    hand_frame = tk.LabelFrame(seat.frame, bd=0)
     hand_frame.grid(row=len(seat.hand),column=0)
-    status_label = tk.Label(hand_frame, text=f'Bet ${seat.base_bet}')
+    status_label = self.create_status_label(hand_frame)
+    status_label.config(text=f'Bet ${seat.base_bet}')
     status_label.grid(row=1,column=0,columnspan=2)
     seat.hand.append(self.Hand([split_card], split_card.value, hand.num_aces, seat.base_bet, hand_frame, status_label))
     self.display_card(seat.hand[-1], split_card)
@@ -662,6 +673,7 @@ class BlackjackGameModel:
           payout_text = f'Push {hand.score} +${payout}'
 
         hand.status_label.config(text=payout_text)
+        hand.status_label.grid(columnspan=len(hand.cards))
 
       if index < len(self.table) - 1:
         seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
