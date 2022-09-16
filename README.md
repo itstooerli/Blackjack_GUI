@@ -28,6 +28,7 @@ Functionality includes bets, splits, double downs, and up to 6 other computer se
 ![blackjack_game](/images/blackjack_game.png)
 * Your hand(s) will be under the label "You", which also provides the total amount of funds you have left.
 * The computers will automatically play their hands using basic strategy when it is their turn.
+* NOTE: If the dealer has 21, the round will automatically end and payouts will be distributed from that point.
 * When it is your turn, your hand's status (seen below you cards) will highlight in yellow.
 * The status label under the hand will indicate
   1. hand's current status
