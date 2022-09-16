@@ -5,13 +5,13 @@ import math
 import copy
 from enum import Enum
 
-## TODO: Make cards bigger (but then limit number of splits)
 ## TODO: Make table & dealer more spaced out
 ## TODO: Change all colors to green
 ## TODO: Rewrite README
 ## TODO: Merge changes back to main
 ## TODO: Figure out what to do if no more money
 ## TODO: Implement recommended action for basic strategy practice
+## TODO: Limit number of splits
 
 class SeatType(Enum):
   PLAYER = 0
@@ -146,7 +146,7 @@ class BlackjackGameModel:
     dealer_frame = tk.LabelFrame(main_frame, text="Dealer", bd=0, bg="blue")
     dealer_frame.grid(row=0, column=0)
     table_frame = tk.LabelFrame(main_frame, bd=0, bg="yellow")
-    table_frame.grid(row=1, column=0, padx=20)
+    table_frame.grid(row=1, column=0)
     
     # Create table as list of Seats
     table = []
