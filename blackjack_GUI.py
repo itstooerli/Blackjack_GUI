@@ -82,17 +82,20 @@ class MainApplication(tk.Tk):
         recommend_frame.pack(side=tk.BOTTOM, pady=10)
         recommend_toggle = tk.Button(recommend_frame, text="Recommend Basic Strategy: OFF")
         recommend_toggle.grid(row=0,column=0)
+        recommend_label = tk.Label(recommend_frame, width=15, text='', fg="#BDD99E", bg="#BDD99E")
+        recommend_label.grid(row=0,column=1)
 
         self.gameModel = bj.BlackjackGameModel(
             main_frame, bet_label, bet_value_var, bet_input, play_button, hit_button,
-            double_down_button, split_button, stand_button, self.num_decks,
-            self.num_players, self.user_seat_no, self.starting_money)
+            double_down_button, split_button, stand_button, recommend_toggle, recommend_label,
+            self.num_decks, self.num_players, self.user_seat_no, self.starting_money)
 
         play_button.config(command=self.gameModel.reset_table)
         hit_button.config(command=self.gameModel.hit_command)
         double_down_button.config(command=self.gameModel.double_down_command)
         split_button.config(command=self.gameModel.split_command)
         stand_button.config(command=self.gameModel.stand_command)
+        recommend_toggle.config(command=self.gameModel.recommend_command)
 
         self.protocol('WM_DELETE_WINDOW', self.on_exit)
 

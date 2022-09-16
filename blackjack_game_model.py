@@ -32,6 +32,8 @@ class BlackjackGameModel:
                double_down_button,
                split_button,
                stand_button,
+               recommend_toggle,
+               recommend_label,
                num_decks,
                num_players,
                user_seat_no,
@@ -45,6 +47,8 @@ class BlackjackGameModel:
     self.double_down_button = double_down_button        # Tk button to double down
     self.split_button = split_button                    # Tk button to split
     self.stand_button = stand_button                    # Tk button to stand
+    self.recommend_toggle = recommend_toggle            # Tk button to turn on recommendations for basic strategy to user
+    self.recommend_label = recommend_label              # Tk label to display recommendation if recommend_toggle on
     self.base_deck = self.create_deck(num_decks)        # Array that holds the Cards used for play
     self.user_seat_no = user_seat_no                    # Position of player at table
     self.table = self.setup_table(self.main_frame, num_players, user_seat_no, starting_money) # Array that holds Seats
@@ -57,6 +61,7 @@ class BlackjackGameModel:
     self.bet_value_var.set(self.table[self.user_seat_no - 1].base_bet)
     self.active_user_hand = None                        # State variable for which hand the user is currently acting on
     self.program_exiting = False                        # State variable for whether the program is exiting to avoid mini-wait-variable-loop
+    self.recommendation_on = False                      # State variable for whether recommendations should be turned on
 
   class Card:
     """ Class used to represent a playing card (suit, number, value in game, image)"""
@@ -441,10 +446,144 @@ class BlackjackGameModel:
       hand.status = HandStatus.LOSER
       hand.status_label.config(text=f'BUST {hand.score}, BET: {hand.bet}')
 
+  def recommend_basic_strategy(self, hand):
+    """ Recommend to player what basic strategy would suggest given current state
+
+    Defining Basic Strategy
+    - Always split As and 8s
+    - Never split 5s and 10s
+    - Split 2s and 3s against Dealer 2-7
+    - Split 4s against Dealer 5-6
+    - Split 6s against Dealer 2-6
+    - Split 7s against Dealer 2-7
+    - Split 9s against Dealer 2-6 or 8-9
+    - Double hard 9 against Dealer 3-6
+    - Double hard 10 against Dealer 2-9
+    - Double hard 11 against Dealer 2-K 
+    - Double soft 13 or 14 against Dealer 5-6
+    - Double soft 15 or 16 against Dealer 4-6
+    - Double soft 17 or 18 against Dealer 3-6
+    - Always hit hard 11 or less
+    - Stand on hard 12 against dealer 4-6, otherwise hit
+    - Stand on hard 13-16 against dealer 2-6, otherwise hit
+    - Always stand on hard 17 or more
+    - Always hit soft 17 or less
+    - Stand on soft 18 except hit against Dealer 9-A 
+    - Always stand on soft 19 or more
+    
+    Input:    seat:   Seat class variable that will be updated in the event of a split
+              hand:   Hand class variable that will be updated when new cards are given
+    """
+    
+    dealer_shown_card = self.table[-1].hand[0].cards[0]
+  
+    if len(hand.cards) == 2:
+      # Assess Split
+      if hand.cards[0].card == hand.cards[1].card:
+        # Only need to look at card and not value because we never split 10s anyways
+        split_card = hand.cards[1]
+  
+        if split_card.card == "A":
+          self.recommend_label.config(text='Split')
+          return
+        elif split_card.card in ("2", "3"):
+          if dealer_shown_card.value in (2,3,4,5,6,7):
+            self.recommend_label.config(text='Split')
+            return
+        elif split_card.card == "4":
+          if dealer_shown_card.value in (5,6):
+            self.recommend_label.config(text='Split')
+            return
+        elif split_card.card == "5":
+          pass
+        elif split_card.card == "6":
+          if dealer_shown_card.value in (2,3,4,5,6):
+            self.recommend_label.config(text='Split')
+            return
+        elif split_card.card == "7":
+          if dealer_shown_card.value in (2,3,4,5,6,7):
+            self.recommend_label.config(text='Split')
+            return
+        elif split_card.card == "8":
+          self.recommend_label.config(text='Split')
+          return
+        elif split_card.card == "9":
+          if dealer_shown_card.value in (2,3,4,5,6,8,9):
+            self.recommend_label.config(text='Split')
+            return
+        else:  # 10, J, Q, K
+          pass
+
+      # Assess Double Down
+      if hand.num_aces == 0:
+        if hand.score == 9:
+          if dealer_shown_card.value in (3,4,5,6):  
+            self.recommend_label.config(text='Double Down')
+            return
+        elif hand.score == 10:
+          if dealer_shown_card.value in (2,3,4,5,6,7,8,9):
+            self.recommend_label.config(text='Double Down')
+            return
+        elif hand.score == 11:
+          if dealer_shown_card.value in (2,3,4,5,6,7,8,9,10):
+            self.recommend_label.config(text='Double Down')
+            return
+      else:
+        if hand.score in (13,14):
+          if dealer_shown_card.value in (5,6):
+            self.recommend_label.config(text='Double Down')
+            return
+        elif hand.score in (15,16):
+          if dealer_shown_card.value in (4,5,6):
+            self.recommend_label.config(text='Double Down')
+            return
+        elif hand.score in (17,18):
+          if dealer_shown_card.value in (3,4,5,6):
+            self.recommend_label.config(text='Double Down')
+            return
+    
+    ## Assess all other hit/stand scenarios
+    if hand.num_aces == 0:
+      if hand.score <= 11:
+        self.recommend_label.config(text='Hit')
+        return
+      elif hand.score == 12:
+        if dealer_shown_card.value in (4,5,6):
+          self.recommend_label.config(text='Stand')
+          return
+        else:
+          self.recommend_label.config(text='Hit')
+          return
+      elif hand.score in (13,14,15,16):
+        if dealer_shown_card.value in (2,3,4,5,6):
+          self.recommend_label.config(text='Stand')
+          return
+        else:
+          self.recommend_label.config(text='Hit')
+          return
+      else:
+        self.recommend_label.config(text='Stand')
+        return
+    else:
+      if hand.score <= 17:
+        self.recommend_label.config(text='Hit')
+        return
+      elif hand.score == 18:
+        if dealer_shown_card.value in (9,10,11):
+          self.recommend_label.config(text='Hit')
+          return
+        else:
+          self.recommend_label.config(text='Stand')
+          return
+      else:
+        self.recommend_label.config(text='Stand')
+        return
+
   def hit_command(self):
     """ Command for hit button: Deal new card to user"""
     self.deal_new_card(self.active_user_hand)
     self.double_down_button.config(state="disabled")
+    self.recommend_basic_strategy(self.active_user_hand)
 
     if self.active_user_hand.score > 21:
       self.stand_command()
@@ -466,8 +605,9 @@ class BlackjackGameModel:
     self.split_button.config(state="disabled")
     seat = self.table[self.user_seat_no - 1]
     self.split_hand(seat, self.active_user_hand)
+    self.recommend_basic_strategy(self.active_user_hand)
 
-    if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card) or (self.active_user_hand.cards[0].value == self.active_user_hand.cards[1].value):
+    if (self.active_user_hand.cards[0].card == self.active_user_hand.cards[1].card):
       self.split_button.config(state="active")
 
   def split_hand(self, seat, hand):
@@ -508,6 +648,17 @@ class BlackjackGameModel:
     This sets the active variable that the main_loop is waiting on to continue actions: self.player_standing
     """
     self.player_standing.set(not self.player_standing)
+
+  def recommend_command(self):
+    """ Command for recommend_toggle to turn off or on recommendations for basic strategy to user"""
+    if self.recommendation_on:
+      self.recommend_toggle.config(text="Recommend Basic Strategy: OFF")
+      self.recommend_label.config(fg="#BDD99E")
+      self.recommendation_on = False
+    else:
+      self.recommend_toggle.config(text="Recommend Basic Strategy: ON")
+      self.recommend_label.config(fg="Black")
+      self.recommendation_on = True
 
   def play_game(self):
     """ This is the primary game loop for blackjack 
@@ -584,6 +735,8 @@ class BlackjackGameModel:
 
           if current_hand.status == HandStatus.ACTIVE:
             current_hand.status_label.config(text=f'ACTIVE {current_hand.score}, BET: {current_hand.bet}')
+            self.recommend_basic_strategy(current_hand) ## Update recommend label for recommendation to player
+            
             ## Activate relevant buttons
             self.hit_button.config(state="active")
             self.stand_button.config(state="active")
@@ -610,6 +763,7 @@ class BlackjackGameModel:
           self.double_down_button.config(state="disabled")
           self.split_button.config(state="disabled")
           self.stand_button.config(state="disabled")
+          self.recommend_label.config(text='')
           completed_hands += 1
         
       elif seat.type == SeatType.DEALER:
