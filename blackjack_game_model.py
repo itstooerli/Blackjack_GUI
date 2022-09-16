@@ -5,9 +5,6 @@ import math
 import copy
 from enum import Enum
 
-## TODO: Rewrite README
-## TODO: Merge changes back to main
-## TODO: Figure out what to do if no more money
 ## TODO: Implement recommended action for basic strategy practice
 
 class SeatType(Enum):
@@ -691,6 +688,8 @@ class BlackjackGameModel:
         seat.frame.config(text=f'{frame_text}')
       
       if seat.type == SeatType.PLAYER and seat.money <= 0:
+        ## If player runs out of money, reload their money.
+        ## NOTE: We could change this functionality but this seems to be most convenient.
         seat.money = self.starting_money
         seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
 
