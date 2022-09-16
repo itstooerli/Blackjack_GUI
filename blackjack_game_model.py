@@ -60,6 +60,7 @@ class BlackjackGameModel:
     self.starting_money = starting_money                # The starting money for the user
     self.bet_value_var.set(self.table[self.user_seat_no - 1].base_bet)
     self.active_user_hand = None                        # State variable for which hand the user is currently acting on
+    self.program_exiting = False                        # State variable for whether the program is exiting to avoid mini-wait-variable-loop
 
   class Card:
     """ Class used to represent a playing card (suit, number, value in game, image)"""
@@ -594,7 +595,8 @@ class BlackjackGameModel:
                 self.split_button.config(state="active")
             
             self.active_user_hand = current_hand
-            self.stand_button.wait_variable(self.player_standing)
+            if not self.program_exiting:
+              self.stand_button.wait_variable(self.player_standing)
         
             if current_hand.score > 21:
               current_hand.status = HandStatus.LOSER
@@ -686,3 +688,8 @@ class BlackjackGameModel:
     ## Config Buttons
     self.play_button.config(state="normal")
     self.bet_input.config(state="normal")
+
+  def on_exit(self):
+    """ Called when user decides to close the window; all active and pending wait_variables are completed or avoided"""
+    self.stand_command()
+    self.program_exiting = True

@@ -232,7 +232,7 @@ class MainApplication(tk.Tk):
         ## has closed it. This solution allows the mini-loop to break, system to quit,
         ## then the objects to be destroyed
         ## Proving SO: https://stackoverflow.com/questions/56175296/unable-to-exit-tkinter-app-when-using-wait-variable
-        self.gameModel.stand_command()
+        self.gameModel.on_exit()
         self.quit()
 
 
