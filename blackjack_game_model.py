@@ -5,13 +5,10 @@ import math
 import copy
 from enum import Enum
 
-## TODO: Make table & dealer more spaced out
-## TODO: Change all colors to green
 ## TODO: Rewrite README
 ## TODO: Merge changes back to main
 ## TODO: Figure out what to do if no more money
 ## TODO: Implement recommended action for basic strategy practice
-## TODO: Limit number of splits
 
 class SeatType(Enum):
   PLAYER = 0
@@ -30,6 +27,7 @@ class HandStatus(Enum):
 class BlackjackGameModel:
   def __init__(self, 
                main_frame,
+               bet_label,
                bet_value_var,
                bet_input,
                play_button,
@@ -42,6 +40,7 @@ class BlackjackGameModel:
                user_seat_no,
                starting_money):
     self.main_frame = main_frame                        # Frame that holds the dealer and player cards
+    self.bet_label = bet_label                          # Label that holds the user's current money total
     self.bet_value_var = bet_value_var                  # User input variable holding user bet value
     self.bet_input = bet_input                          # Tk input for user to type user bet value
     self.play_button = play_button                      # Tk button to begin play
@@ -583,9 +582,10 @@ class BlackjackGameModel:
       elif seat.type == SeatType.PLAYER:
         while completed_hands < len(seat.hand):
           current_hand = seat.hand[completed_hands]
+          status_label_orig_color = current_hand.status_label.cget('background')
+          current_hand.status_label.config(bg='yellow')
 
           if current_hand.status == HandStatus.ACTIVE:
-            # current_hand.frame.config(bg='yellow')
             current_hand.status_label.config(text=f'ACTIVE {current_hand.score}, BET: {current_hand.bet}')
             ## Activate relevant buttons
             self.hit_button.config(state="active")
@@ -608,6 +608,7 @@ class BlackjackGameModel:
               current_hand.status = HandStatus.WAITING
               current_hand.status_label.config(text=f'STAND {current_hand.score}, BET: {current_hand.bet}')
           
+          current_hand.status_label.config(bg=status_label_orig_color)
           self.hit_button.config(state="disabled")
           self.double_down_button.config(state="disabled")
           self.split_button.config(state="disabled")
@@ -684,18 +685,18 @@ class BlackjackGameModel:
 
       if index == self.user_seat_no - 1:
         frame_text = f'You: ${seat.money}'
+        self.bet_label.config(text=f"Funds: ${seat.money} | Bet Amount:")
 
       if index < len(self.table) - 1:
         seat.frame.config(text=f'{frame_text}')
       
       if seat.type == SeatType.PLAYER and seat.money <= 0:
-        ## TODO: Figure out what to do if out of money
         seat.money = self.starting_money
         seat.frame.config(text=f'Player {index + 1}: ${seat.money}')
 
-    ## Config Buttons
+    ## Config Buttons and Labels
     self.play_button.config(state="normal")
-    self.bet_input.config(state="normal")
+    self.bet_input.config(state="normal") 
 
   def on_exit(self):
     """ Called when user decides to close the window; all active and pending wait_variables are completed or avoided"""

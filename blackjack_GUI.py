@@ -40,7 +40,7 @@ class MainApplication(tk.Tk):
         bet_frame = tk.Frame(self, bg="purple")
         bet_frame.pack(side=tk.BOTTOM, pady=10)
 
-        bet_label = tk.Label(bet_frame, text="Bet: ", font=("Helvetica", 14))
+        bet_label = tk.Label(bet_frame, text=f"Funds: ${self.starting_money} | Bet Amount:", font=("Helvetica", 14))
         bet_label.grid(row=0, column=0)
         bet_value_var = tk.IntVar()
         bet_input = tk.Entry(bet_frame,
@@ -79,7 +79,7 @@ class MainApplication(tk.Tk):
         stand_button.grid(row=0, column=3, padx=10)
 
         self.gameModel = bj.BlackjackGameModel(
-            main_frame, bet_value_var, bet_input, play_button, hit_button,
+            main_frame, bet_label, bet_value_var, bet_input, play_button, hit_button,
             double_down_button, split_button, stand_button, self.num_decks,
             self.num_players, self.user_seat_no, self.starting_money)
 
