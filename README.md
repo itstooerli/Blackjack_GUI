@@ -1,7 +1,7 @@
-# Blackjack w/ GUI
+# Blackjack - Learn Basic Strategy
 Vegas-style blackjack game using Python Tkinter
 
-Functionality includes bets, splits, double downs, and up to 6 other computer seats that play blackjack basic strategy.
+This program provides an opportunity learn basic strategy for blackjack by providing a recommendation for what basic strategy would suggest given a scenario. Functionality includes bets, splits, double downs, and up to 6 other computer seats that also play blackjack basic strategy. You can also toggle the recommendation strategy off to simply play for fun.
 
 ## Instructions
 ### Running the program
